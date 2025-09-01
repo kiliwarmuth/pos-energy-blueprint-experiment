@@ -1,0 +1,21 @@
+experiment:
+  entrypoint: "experiment.py"
+  interpreter: "python3"
+  args: "riga --publish -v"
+
+nodes:
+  - riga
+
+extra_files:
+  - /home/warmuth/.secrets/zenodo_sandbox_token
+
+environment:
+  vars:
+    EXPERIMENT_NAME: "test"
+  secrets:
+    ZENODO_ACCESS_TOKEN: "..."
+
+zenodo:
+  access_right: "open"
+  notes: "This dataset contains raw experimental data."
+  upload_type: "dataset"
