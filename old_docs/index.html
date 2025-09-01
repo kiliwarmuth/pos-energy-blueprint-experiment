@@ -3,18 +3,20 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>POS Blueprint Leaderboard</title>
   <link rel="stylesheet" href="styles.css" />
-  <meta name="description" content="Leaderboard from repo submissions" />
+  <meta name="description" content="Live leaderboard for POS blueprint runs from Zenodo" />
 </head>
 
 <body>
   <header class="site-header">
     <h1>POS Blueprint Leaderboard</h1>
     <p class="subtitle">
-      Source: <code id="kw"></code>
+      Live from Zenodo by keyword:
+      <code id="kw"></code>
     </p>
+
     <div class="controls">
       <label>Sort
         <select id="sort">
@@ -24,22 +26,23 @@
           <option value="energy_wh:asc">Energy (Wh) ↑</option>
         </select>
       </label>
+
       <label>CPU filter
         <input id="cpuFilter" placeholder="e.g. 7950X or Xeon" />
       </label>
+
       <button id="refresh" type="button">Refresh</button>
     </div>
-    <div id="status" class="status" aria-live="polite"></div>
+
     <div id="stats" class="stats"></div>
+
     <details class="howto">
       <summary>How to appear here</summary>
       <ol>
-        <li>Fork this repo.</li>
-        <li>Add a folder under <code>submission/&lt;user&gt;/&lt;run_id&gt;</code>
-          with <code>manifest.json</code> and 4 PNGs in
-          <code>energy/</code>.
-        </li>
-        <li>Open a Pull Request. CI will validate and, if OK, we merge.</li>
+        <li>Run the blueprint with <code>--publish</code>.</li>
+        <li>Include the Zenodo keyword <code id="kw2"></code>
+          (put it in <em>keywords</em> or in the description).</li>
+        <li>Reload this page to see your run.</li>
       </ol>
     </details>
   </header>
@@ -47,19 +50,20 @@
   <main id="grid" class="grid" aria-live="polite"></main>
 
   <footer class="site-footer">
-    <small>Static site. Reads submissions from this repository.</small>
+    <small>
+      This is a static site. Data loads from Zenodo’s public API.
+      Your record must include the configured keyword to be shown.
+    </small>
   </footer>
 
   <script>
     window.APP_CFG = {
-      source: "github",
-      gh_owner: "YOUR_ORG_OR_USER",
-      gh_repo: "YOUR_REPO",
-      gh_branch: "main",
-      gh_path: "submission",
-      pageSize: 100,
-      maxPages: 1,
-      verbose: true
+      mode: "keyword",             // "keyword" | "community"
+      keyword: "pos-blueprint:stress-energy",
+      // For moderated ingestion instead, use:
+      // mode: "community", community: "your-community-id",
+      zenodoApi: "https://sandbox.zenodo.org/api",
+      pageSize: 100
     };
   </script>
   <script src="app.js"></script>
