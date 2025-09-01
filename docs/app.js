@@ -76,7 +76,7 @@ async function ghReadRun(cfg, run) {
     }
   } catch (_) { }
 
-  const imgs = ["power.png", "bar.png", "current.png", "voltage.png"]
+  const imgs = ["power-over-time.png", "total-energy-per-node.png", "current-over-time.png", "smoothed-voltage.png"]
     .map(n => ghRawUrl(cfg, `${run.path}/energy/${n}`));
 
   const created = manifest.created || "";
