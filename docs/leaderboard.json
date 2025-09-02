@@ -20,7 +20,8 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/total-energy-per-node.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/current-over-time.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/smoothed-voltage.png"
-      ]
+      ],
+      "node": "riga"
     },
     {
       "id": "2025-09-01_10-47-47_182615",
@@ -42,7 +43,8 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/total-energy-per-node.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/current-over-time.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/smoothed-voltage.png"
-      ]
+      ],
+      "node": "riga"
     },
     {
       "id": "2025-09-02_10-47-47_182613",
@@ -64,7 +66,8 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/total-energy-per-node.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/current-over-time.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/smoothed-voltage.png"
-      ]
+      ],
+      "node": "riga"
     }
   ]
 }
