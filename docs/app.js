@@ -318,10 +318,11 @@ function render(rows) {
 
     ${r.zenodo
         ? `<div class="section">
-             <a href="${r.zenodo}" target="_blank" rel="noopener">
-               Results: Zenodo Deposition
-             </a>
-           </div>`
+         <strong>Results:</strong>
+         <a href="${r.zenodo}" target="_blank" rel="noopener">
+           Zenodo Deposition
+         </a>
+       </div>`
         : ""
       }
   </div>`;
