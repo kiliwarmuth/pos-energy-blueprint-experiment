@@ -255,25 +255,36 @@ function render(rows) {
         : "";
 
     const meta = `
-      <div class="meta">
-        <div><strong>User:</strong> ${r.user_display || r.user || "unknown"}</div>
-        ${aff ? `<div class="muted">${aff}</div>` : ""}
+  <div class="meta">
+    <div><strong>User:</strong> ${r.user_display || r.user || "unknown"}</div>
+    ${aff ? `<div class="muted">${aff}</div>` : ""}
 
-        <div><strong>CPU:</strong> ${r.cpu_label || "unknown"}${socketsBadge} ${htBadgeHtml}</div>
-        <div class="muted">Totals: ${r.cores ?? "?"} cores · ${r.threads ?? "?"} threads</div>
-        ${socketsList}
+    <div class="section">
+      <div><strong>CPU:</strong> ${r.cpu_label || "unknown"}${socketsBadge} ${htBadgeHtml}</div>
+      <div class="muted">Totals: ${r.cores ?? "?"} cores · ${r.threads ?? "?"} threads</div>
+      ${socketsList}
+    </div>
 
-        <div><strong>Power / Energy:</strong>
-          <span class="metric">${r.avg_power_w ?? "–"} W avg</span> ·
-          <span class="metric">${r.peak_power_w ?? "–"} W peak</span> ·
-          <span class="metric">${r.energy_wh ?? "–"} Wh</span>
-        </div>
+    <div class="section">
+      <div><strong>Power / Energy:</strong></div>
+      <div class="metric-line">
+        <span class="metric">${r.avg_power_w ?? "–"} W avg</span> ·
+        <span class="metric">${r.peak_power_w ?? "–"} W peak</span>
+      </div>
+      <div class="metric-line">
+        <span class="metric">${r.energy_wh ?? "–"} Wh</span>
+      </div>
+    </div>
 
-        ${r.zenodo
-        ? `<div><a href="${r.zenodo}" target="_blank" rel="noopener">Results on Zenodo</a></div>`
+    ${r.zenodo
+        ? `<div class="section">
+             <a href="${r.zenodo}" target="_blank" rel="noopener">
+               Results: Zenodo Deposition
+             </a>
+           </div>`
         : ""
       }
-      </div>`;
+  </div>`;
 
     el.innerHTML = `<h3>Run ${r.id}</h3>${meta}<div class="imgs">${imgs}</div>`;
     grid.appendChild(el);

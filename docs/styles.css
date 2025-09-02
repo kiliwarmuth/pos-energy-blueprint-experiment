@@ -150,6 +150,16 @@ code {
     opacity: .85;
 }
 
+.meta .section {
+    margin-top: 0.6rem;
+    /* whitespace between blocks */
+}
+
+.metric-line {
+    margin-left: 0.5rem;
+    margin-top: 0.2rem;
+}
+
 .metric {
     white-space: nowrap;
 }
