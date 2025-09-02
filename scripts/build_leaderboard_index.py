@@ -1,16 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Build docs/leaderboard.json from submission/<user>/<run_id> (manifest-only).
-
-- Reads manifest.json for each run.
-- Resolves energy/*.png download URLs via GitHub Contents API.
-- Writes docs/leaderboard.json consumed by the website.
-
-flake8: max line length 79
 """
-
-from __future__ import annotations
 
 import json
 import os
@@ -34,6 +25,7 @@ HEAD["X-GitHub-Api-Version"] = "2022-11-28"
 
 
 def gh_contents(path: str) -> Any:
+    """Get the contents of a GitHub repository directory."""
     url = f"{API}/repos/{OWNER}/{REPO}/contents/{path}"
     params = {"ref": BRANCH}
     r = requests.get(url, headers=HEAD, params=params, timeout=30)
@@ -44,6 +36,7 @@ def gh_contents(path: str) -> Any:
 
 
 def list_runs(root: str = "submission") -> List[Dict[str, str]]:
+    """List all runs in the specified root directory."""
     runs: List[Dict[str, str]] = []
     for user in gh_contents(root):
         if user.get("type") != "dir":
@@ -59,6 +52,7 @@ def list_runs(root: str = "submission") -> List[Dict[str, str]]:
 
 
 def download_url_for(path: str) -> Optional[str]:
+    """Get the download URL for a file in the repository."""
     js = gh_contents(path)
     if isinstance(js, dict) and "download_url" in js:
         return js["download_url"]
@@ -66,6 +60,7 @@ def download_url_for(path: str) -> Optional[str]:
 
 
 def read_manifest(path: str) -> Dict[str, Any]:
+    """Read the manifest.json file."""
     url = download_url_for(path)
     if not url:
         return {}
@@ -79,6 +74,7 @@ def read_manifest(path: str) -> Dict[str, Any]:
 
 def summarize(manifest: Dict[str, Any],
               run: Dict[str, str]) -> Dict[str, Any]:
+    """Summarize the run information."""
     author = manifest.get("author") or {}
     user = manifest.get("username") or run["user"]
     user_display = (author.get("display_name") or author.get("name") or
@@ -142,6 +138,7 @@ def summarize(manifest: Dict[str, Any],
 
 
 def main() -> int:
+    """Main entry point."""
     runs = list_runs()
     out = {"runs": []}
     for r in runs:
