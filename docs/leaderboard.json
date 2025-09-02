@@ -1,3 +1,70 @@
 {
-  "runs": []
+  "runs": [
+    {
+      "id": "2025-09-02_10-47-47_131213",
+      "user": "erhauser",
+      "user_display": "user:erhauser",
+      "affiliation_name": "Technical University of Munich",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "ht_badge": "",
+      "avg_power_w": 165.2,
+      "peak_power_w": 1321.4,
+      "energy_wh": 144.88,
+      "created": "2025-09-02T10:47:47Z",
+      "zenodo": "https://sandbox.zenodo.org/records/321747",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/erhauser/2025-09-02_10-47-47_131213/energy/smoothed-voltage.png"
+      ]
+    },
+    {
+      "id": "2025-09-01_10-47-47_182615",
+      "user": "warmuth",
+      "user_display": "Kilian Warmuth",
+      "affiliation_name": "Technical University of Munich",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "ht_badge": " (HT off)",
+      "avg_power_w": 69.2,
+      "peak_power_w": 131.4,
+      "energy_wh": 14.89,
+      "created": "2025-09-01T10:47:47Z",
+      "zenodo": "https://sandbox.zenodo.org/records/321747",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-01_10-47-47_182615/energy/smoothed-voltage.png"
+      ]
+    },
+    {
+      "id": "2025-09-02_10-47-47_182613",
+      "user": "warmuth",
+      "user_display": "Kilian Warmuth",
+      "affiliation_name": "Technical University of Munich",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "ht_badge": "",
+      "avg_power_w": 65.2,
+      "peak_power_w": 121.4,
+      "energy_wh": 14.88,
+      "created": "2025-09-01T10:47:47Z",
+      "zenodo": "https://sandbox.zenodo.org/records/321747",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_10-47-47_182613/energy/smoothed-voltage.png"
+      ]
+    }
+  ]
 }
