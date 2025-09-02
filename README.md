@@ -1,12 +1,12 @@
 # pos Blueprint Leaderboard
 
-TODO: update
-
 This repository contains:
 
-- the **energy stress test experiment** in `/experiment`
-- the **leaderboard submissions (results)** in `/submission`
-- helper scripts in `/scripts`
+- the **energy stress test experiment** in `/experiment/`
+- the **leaderboard submissions (results)** in `/submission/`
+- helper scripts in `/scripts/`
+
+---
 
 ## Experiment
 
@@ -19,9 +19,11 @@ pos experiments execute experiment/config.yaml
 This will:
 
 - allocate and configure the node
-- execute the linux `stress` command to test different combinations of core utilization
+- execute the Linux `stress` command to test different combinations of core utilization
 - measure energy consumption
 - produce result plots and metadata
+
+---
 
 ## Leaderboard
 
@@ -46,20 +48,24 @@ submission/
 - Each **user** has their own folder.
 - Each **run** (submission) is stored in a timestamped subfolder.
 - Each run must contain:
-  - an `energy/` folder with 4 plots about measured energy consumption
+  - an `energy/` folder with 4 plots of the measured energy consumption
   - a `manifest.json` summarizing metadata about the run
+
+---
 
 ### `manifest.json` contents
 
 The manifest describes one run and contains:
 
 - `run_id` — unique identifier for the run
-- `author` — name, handle, ORCID, affiliation
+- `author` — user information (name, handle, ORCID, affiliation)
 - `processor[]` — hardware info (vendor, model, cores, threads …)
-- `threading_enabled` — whether SMT/HT was active
-- `metrics` — key energy values (avg power, peak power, energy in Wh)
+- `threading_enabled` — whether SMT/HyperThreading was active
+- `metrics` — key energy values (avg power, peak power, total energy in Wh)
 - `zenodo_html` — deposition link (if published to Zenodo)
 - `created` — timestamp of the run
+
+---
 
 ## Scripts
 
@@ -69,8 +75,10 @@ The manifest describes one run and contains:
   - `manifest.json` is present and contains required fields
 
 - `scripts/build_leaderboard_index.py`
-  Builds a static JSON index (`docs/leaderboard.json`) consumed by the website.
+  Builds a static JSON index (`docs/leaderboard.json`) consumed by the leaderboard website.
   This is executed automatically via GitHub Actions.
+
+---
 
 ## Workflow
 
@@ -81,6 +89,8 @@ The manifest describes one run and contains:
 3. Commit and push this folder to the repository (or open a PR).
 4. CI validates the submission and rebuilds `docs/leaderboard.json`.
 5. GitHub Pages automatically updates the leaderboard site.
+
+---
 
 ## How to add a new submission
 
