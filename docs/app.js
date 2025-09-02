@@ -198,6 +198,9 @@ function render(rows) {
 
 async function loadAndRender() {
   try {
+    const kw = document.getElementById("kw");
+    if (kw) kw.textContent = "static · leaderboard.json";   // <-- add this
+
     STATUS.set("Loading index…");
     const idx = await fetchIndexJson();
     ALL_ROWS = rowsFromIndexJson(idx);
