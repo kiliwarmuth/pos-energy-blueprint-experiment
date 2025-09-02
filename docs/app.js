@@ -210,36 +210,69 @@ function render(rows) {
     const el = document.createElement("article");
     el.className = "card";
 
-    const imgs = r.images.map((u) =>
-      `<a href="${u}" target="_blank" rel="noopener">
-         <img src="${u}" alt="energy plot" loading="lazy"
-              onerror="this.style.outline='2px solid #f77';this.alt='missing';">
-       </a>`).join("");
+    // images (clickable)
+    const imgs = (r.images || [])
+      .map(
+        (u) =>
+          `<a href="${u}" target="_blank" rel="noopener">
+             <img src="${u}" alt="energy plot" loading="lazy"
+                  onerror="this.style.outline='2px solid #f77';this.alt='missing';">
+           </a>`
+      )
+      .join("");
 
+    // affiliation (linked if ROR present)
     const aff = r.affiliation_name
       ? (r.affiliation_ror
         ? `<a href="${r.affiliation_ror}" target="_blank" rel="noopener">${r.affiliation_name}</a>`
         : r.affiliation_name)
       : "";
 
-    const socketsBadge = r.sockets > 1 ? ` <span class="badge">${r.sockets}× sockets</span>` : "";
+    // HT badge: r.ht_badge is "" or " (HT off)" in current data model
+    const htIsOff =
+      typeof r.ht_badge === "string" &&
+      r.ht_badge.toLowerCase().includes("off");
+    const htBadgeHtml = htIsOff
+      ? `<span class="badge warn" title="Simultaneous multithreading disabled">HT off</span>`
+      : `<span class="badge ok" title="Simultaneous multithreading enabled">HT on</span>`;
 
-    const socketsList = (r.sockets_list && r.sockets_list.length > 1)
-      ? `<ul class="cpu-sockets">${r.sockets_list.map((p) =>
-        `<li>${[p.vendor, p.model].filter(Boolean).join(" ")} (${p.cores ?? "?"}/${p.threads ?? "?"})</li>`
-      ).join("")
-      }</ul>` : "";
+    // sockets badge & optional per-socket list (if data available)
+    const sockets =
+      r.sockets ?? (Array.isArray(r.sockets_list) ? r.sockets_list.length : 1);
+    const socketsBadge =
+      sockets > 1 ? ` <span class="badge" title="Number of CPU packages">${sockets}× sockets</span>` : "";
+
+    const socketsList =
+      Array.isArray(r.sockets_list) && r.sockets_list.length > 1
+        ? `<ul class="cpu-sockets">${r.sockets_list
+          .map(
+            (p, i) =>
+              `<li><span class="muted">Socket ${i}:</span> ${[p.vendor, p.model].filter(Boolean).join(" ")
+              } — ${p.cores ?? "?"} cores · ${p.threads ?? "?"} threads</li>`
+          )
+          .join("")
+        }</ul>`
+        : "";
 
     const meta = `
       <div class="meta">
-        <div><strong>User:</strong> ${r.user_display}${aff ? ` · ${aff}` : ""}</div>
-        <div><strong>CPU:</strong> ${r.cpu_label} (${r.cores}/${r.threads})${r.ht_badge}${socketsBadge}</div>
+        <div><strong>User:</strong> ${r.user_display || r.user || "unknown"}</div>
+        ${aff ? `<div class="muted">${aff}</div>` : ""}
+
+        <div><strong>CPU:</strong> ${r.cpu_label || "unknown"}${socketsBadge} ${htBadgeHtml}</div>
+        <div class="muted">Totals: ${r.cores ?? "?"} cores · ${r.threads ?? "?"} threads</div>
         ${socketsList}
+
         <div><strong>Power / Energy:</strong>
-          ${r.avg_power_w ?? "–"} W avg ·
-          ${r.peak_power_w ?? "–"} W peak ·
-          ${r.energy_wh ?? "–"} Wh</div>
-        ${r.zenodo ? `<div><a href="${r.zenodo}" target="_blank" rel="noopener">Results on Zenodo</a></div>` : ""}
+          <span class="metric">${r.avg_power_w ?? "–"} W avg</span> ·
+          <span class="metric">${r.peak_power_w ?? "–"} W peak</span> ·
+          <span class="metric">${r.energy_wh ?? "–"} Wh</span>
+        </div>
+
+        ${r.zenodo
+        ? `<div><a href="${r.zenodo}" target="_blank" rel="noopener">Results on Zenodo</a></div>`
+        : ""
+      }
       </div>`;
 
     el.innerHTML = `<h3>Run ${r.id}</h3>${meta}<div class="imgs">${imgs}</div>`;

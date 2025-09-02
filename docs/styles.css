@@ -129,3 +129,37 @@ code {
     padding: .1rem .3rem;
     border-radius: 6px;
 }
+
+.badge {
+    display: inline-block;
+    padding: .12rem .45rem;
+    border-radius: .5rem;
+    font-size: .72rem;
+    background: #2a3344;
+}
+
+.badge.ok {
+    background: #1f3b2e;
+}
+
+.badge.warn {
+    background: #4a2c2c;
+}
+
+.muted {
+    opacity: .85;
+}
+
+.metric {
+    white-space: nowrap;
+}
+
+.cpu-sockets {
+    margin: .25rem 0 0;
+    font-size: .9rem;
+}
+
+.cpu-sockets li {
+    list-style: disc;
+    margin-left: 1.2rem;
+}
