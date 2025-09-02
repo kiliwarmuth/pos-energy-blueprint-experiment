@@ -186,7 +186,7 @@ function render(rows) {
 
     const nodeLine =
       r.node && String(r.node).trim().length
-        ? `<div class="node-line"><strong>Node:</strong> ${r.node}</div>`
+        ? `<div class="node-line">on Node ${r.node}</div>`
         : "";
 
     el.innerHTML = `<h3>Run ${r.id}</h3>${nodeLine}${meta}<div class="imgs">${imgs}</div>`;
