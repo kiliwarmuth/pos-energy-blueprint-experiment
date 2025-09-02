@@ -10,6 +10,7 @@
     "affiliation_ror": "https://ror.org/02kkvpp62",
     "affiliation_name": "Technical University of Munich"
   },
+  "node": "riga",
   "processor": [
     {
       "slot": "CPU",
