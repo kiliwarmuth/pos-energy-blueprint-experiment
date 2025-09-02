@@ -9,8 +9,12 @@ import io
 import json
 import logging
 import os
+import shutil
 import sys
-from typing import Dict, Any, Tuple, List
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, Any, Tuple, List, Optional
+
 import yaml
 
 try:
@@ -20,6 +24,8 @@ except ImportError:
           file=sys.stderr)
     sys.exit(1)
 
+
+# ----------------------------- logging ------------------------------------ #
 
 def setup_logging(verbose: bool) -> logging.Logger:
     """Configure logger."""
@@ -36,8 +42,10 @@ def setup_logging(verbose: bool) -> logging.Logger:
     return logging.getLogger("pos-exp")
 
 
+# ----------------------------- helpers ------------------------------------ #
+
 def sum_processor_counts(node_info: Dict[str, Any], key: str) -> int:
-    """Sum cores/threads across sockets."""
+    """Sum cores/threads across sockets for legacy structures."""
     total = 0
     for pinfo in node_info.get("processor", []) or []:
         val = pinfo.get(key)
@@ -48,7 +56,7 @@ def sum_processor_counts(node_info: Dict[str, Any], key: str) -> int:
 
 
 def get_cpu_counts(node: str, log: logging.Logger) -> Tuple[int, int]:
-    """Get total cores and threads for node."""
+    """Get total cores and threads for node (from pos.nodes.show)."""
     data, _ = pos.nodes.show(node)
     info = data.get(node, {})
     cores = sum_processor_counts(info, "cores")
@@ -59,6 +67,7 @@ def get_cpu_counts(node: str, log: logging.Logger) -> Tuple[int, int]:
 
 def make_series(n: int) -> List[int]:
     """Return [1..n]."""
+    n = max(1, int(n or 1))
     return list(range(1, n + 1))
 
 
@@ -121,17 +130,123 @@ def run_infile(node: str, script_path: str, *,
     return data
 
 
+# ---------------------- manifest extraction utils ------------------------- #
+
+def _read_json(path: Path) -> Optional[Dict[str, Any]]:
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _extract_author_from_rocrate(crate: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Pull a 'Person' from RO-Crate. Prefer tags ['author','main_author'],
+    else any 'author', else first Person. Normalize fields.
+    """
+    graph = crate.get("@graph", []) if isinstance(crate, dict) else []
+    persons: List[Dict[str, Any]] = [
+        x for x in graph if isinstance(x, dict) and x.get("@type") == "Person"
+    ]
+
+    def tags(p: Dict[str, Any]) -> List[str]:
+        return [t.lower() for t in (p.get("tags") or [])]
+
+    pick = (next((p for p in persons
+                  if {"author", "main_author"} <= set(tags(p))), None)
+            or next((p for p in persons if "author" in tags(p)), None)
+            or (persons[0] if persons else None))
+
+    if not pick:
+        return {}
+
+    display = (pick.get("name") or
+               " ".join(filter(None, [pick.get("givenName"),
+                                      pick.get("familyName")])))
+    alt = pick.get("alternateName") or ""
+    handle = (alt or (display.split(" ")[-1].lower() if display else ""))
+
+    aff = pick.get("affiliation") or {}
+    aff_name = pick.get("affiliation_name", "")
+    aff_ror = pick.get("affiliation_ror", "")
+    if not aff_ror and isinstance(aff, dict):
+        aff_id = aff.get("@id", "")
+        if isinstance(aff_id, str) and "ror.org" in aff_id:
+            aff_ror = aff_id
+
+    return {
+        "display_name": display or handle or "unknown",
+        "handle": handle or "unknown",
+        "orcid": pick.get("@id", "") if "orcid.org" in str(pick.get("@id"))
+        else "",
+        "affiliation_name": aff_name,
+        "affiliation_ror": aff_ror,
+    }
+
+
+def _extract_processors_from_hw(hw: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Normalize processors list from hardware.json. If missing, synthesize one
+    from flat keys so totals still work.
+    """
+    if not isinstance(hw, dict):
+        return []
+
+    procs = hw.get("processor")
+    if isinstance(procs, list) and procs:
+        out: List[Dict[str, Any]] = []
+        for p in procs:
+            if not isinstance(p, dict):
+                continue
+            out.append({
+                "slot": p.get("slot") or p.get("id") or "CPU",
+                "vendor": p.get("vendor") or p.get("manufacturer") or "",
+                "model": (p.get("model") or p.get("name") or
+                          hw.get("cpu_model") or ""),
+                "cores": int(p.get("cores") or 0),
+                "threads": int(p.get("threads") or p.get("cores") or 0),
+                "architecture": (p.get("architecture") or
+                                 hw.get("architecture") or "x86_64"),
+            })
+        return out
+
+    return [{
+        "slot": "CPU",
+        "vendor": hw.get("vendor") or hw.get("cpu_vendor") or "",
+        "model": hw.get("model") or hw.get("cpu_model") or "",
+        "cores": int(hw.get("cores") or hw.get("cpu_cores") or 0),
+        "threads": int(hw.get("threads") or hw.get("cpu_threads") or
+                       hw.get("cores") or hw.get("cpu_cores") or 0),
+        "architecture": hw.get("architecture") or "x86_64",
+    }]
+
+
+def _read_metrics(result_dir: Path) -> Dict[str, Any]:
+    """Read energy/metrics.json if present."""
+    mpath = result_dir / "energy" / "metrics.json"
+    data = _read_json(mpath)
+    if isinstance(data, dict):
+        return {
+            "avg_power_w": data.get("avg_power_w"),
+            "peak_power_w": data.get("peak_power_w"),
+            "energy_wh": data.get("energy_wh"),
+        }
+    return {}
+
+
+# ------------------------------- main ------------------------------------- #
+
 def main() -> int:
     """Main entry."""
     parser = argparse.ArgumentParser()
     parser.add_argument("loadgen", help="Load generator node")
     parser.add_argument("--experiment-name", default="stress-energy")
     parser.add_argument("--global-vars", default="variables/global.yml")
-    parser.add_argument("--loop-dimension", choices=["cores", "threads"],
-                        default="cores")
-    parser.add_argument("--loop-max", type=int, default=None)
     parser.add_argument("--image", default="debian-trixie")
     parser.add_argument("--bootparam", action="append", default=["iommu=pt"])
+    parser.add_argument("--enable-hyperthreading", action="store_true",
+                        help="If set, loop over threads instead of cores.")
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--zenodo-token-file",
                         default=os.path.expanduser(
@@ -151,13 +266,10 @@ def main() -> int:
     log.debug("Allocation ID: %s", alloc_id)
     log.debug("Result folder: %s", result_folder)
 
-    # log.info("Detect CPU topology")
+    # Loop sizing based on flag (threads vs cores)
     cores, threads = get_cpu_counts(args.loadgen, log)
-    count = threads if args.loop_dimension == "threads" else cores
-    if args.loop_max:
-        count = min(count, args.loop_max)
-    loop_vars = {"cores": make_series(count)}
-    log.debug("Set Loop Variables: %s", loop_vars)
+    use = threads if args.enable_hyperthreading and threads else cores
+    loop_vars = {"cores": make_series(use)}
 
     log.info("Set global variables: %s", args.global_vars)
     set_variables_from_path(args.loadgen, args.global_vars,
@@ -178,22 +290,56 @@ def main() -> int:
 
     setup_script = os.path.join("loadgen", "setup.sh")
     run_infile(args.loadgen, setup_script, blocking=True,
-               name="setup",
-               loop=False, log=log)
+               name="setup", loop=False, log=log)
 
     exp_script = os.path.join("loadgen", "loadgen.sh")
     run_infile(args.loadgen, exp_script, blocking=True,
-               name="energy-stress-test",
-               loop=True, log=log)
+               name="energy-stress-test", loop=True, log=log)
 
+    # Visuals + (usually) metrics.json
     log.info("Creating Energy Visualization")
     pos.energy.visualize(
-            result_dir=result_folder,
-            plots=["power", "bar", "current", "voltage"],
-            img_format="png",
-            runs=None,
-        )
+        result_dir=result_folder,
+        plots=["power", "bar", "current", "voltage"],
+        img_format="png",
+        runs=None,
+    )
 
+    # ---------------- Build manifest ---------------- #
+    rdir = Path(result_folder)
+    run_id = Path(result_folder).name
+    created_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    # RO-Crate author (best effort)
+    crate = _read_json(rdir / "ro-crate-metadata.json") or {}
+    author = _extract_author_from_rocrate(crate)
+
+    # Derive username then remove 'handle' from author
+    username = (author.get("handle") or author.get("display_name")
+                or "unknown")
+    author.pop("handle", None)
+
+    # Hardware per-node
+    cfg_dir = rdir / "config" / args.loadgen
+    hw_json = _read_json(cfg_dir / "hardware.json") or {}
+    processors = _extract_processors_from_hw(hw_json or {})
+
+    # Metrics (from visualizer)
+    metrics = _read_metrics(rdir)
+
+    manifest: Dict[str, Any] = {
+        "run_id": run_id,
+        "node": args.loadgen,
+        "created": created_iso,
+        "username": username,
+        "author": author,
+        "processor": processors,
+        "threading_enabled": bool(args.enable_hyperthreading),
+        "metrics": metrics,
+        "zenodo_html": "",
+    }
+
+    deposition_link = None
     if args.publish:
         rf_path = f"/srv/testbed/results/{result_folder}"
         log.info("Publishing results to Zenodo")
@@ -212,6 +358,41 @@ def main() -> int:
             access_right="open",
         )
         log.info("Published to Zenodo: %s", deposition_link)
+        manifest["zenodo_html"] = deposition_link or ""
+
+    # ---------------- Write submission into repo ---------------- #
+    repo_root = Path(__file__).resolve().parents[1]  # pos-blueprint/
+    sub_dir = repo_root / "submission" / username / run_id
+    sub_energy = sub_dir / "energy"
+    sub_dir.mkdir(parents=True, exist_ok=True)
+    sub_energy.mkdir(parents=True, exist_ok=True)
+
+    # Write manifest.json
+    with (sub_dir / "manifest.json").open("w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    log.debug("Wrote submission manifest: %s", sub_dir / "manifest.json")
+
+    # Copy plots
+    src_energy = rdir / "energy"
+    wanted = [
+        "power-over-time.png",
+        "total-energy-per-node.png",
+        "current-over-time.png",
+        "smoothed-voltage.png",
+    ]
+    for name in wanted:
+        src = src_energy / name
+        dst = sub_energy / name
+        if src.exists():
+            shutil.copy2(src, dst)
+            log.debug("Copied plot: %s", dst)
+        else:
+            log.warning("Missing plot (skip): %s", src)
+
+    log.info("Created new submission")
+
+    # TODO: Add automatic push to repo (git)
 
     return 0
 

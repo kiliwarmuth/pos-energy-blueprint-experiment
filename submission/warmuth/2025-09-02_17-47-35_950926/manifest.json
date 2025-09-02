@@ -1,0 +1,29 @@
+{
+  "run_id": "2025-09-02_17-47-35_950926",
+  "node": "riga",
+  "created": "2025-09-02T15:54:06+00:00",
+  "username": "warmuth",
+  "author": {
+    "display_name": "Kilian Warmuth",
+    "orcid": "https://orcid.org/0000-0001-6328-1047",
+    "affiliation_name": "",
+    "affiliation_ror": "https://ror.org/02kkvpp62"
+  },
+  "processor": [
+    {
+      "slot": "CPU",
+      "vendor": "Intel",
+      "model": "Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "architecture": "64bit"
+    }
+  ],
+  "threading_enabled": true,
+  "metrics": {
+    "avg_power_w": 107.60576923076923,
+    "peak_power_w": 120.0,
+    "energy_wh": 0.0
+  },
+  "zenodo_html": "https://sandbox.zenodo.org/deposit/324045"
+}
