@@ -44,7 +44,7 @@ fi
 # -------------------------------------------------------------------
 echo
 echo "============================================================"
-echo "        POS Experiment Workflow – $experiment_name"
+echo "        pos Experiment Workflow – $experiment_name"
 echo "============================================================"
 echo
 

@@ -75,7 +75,7 @@ def _load_vars_from_path(path: str) -> Dict[str, Any]:
 def set_variables_from_path(node: str, path: str,
                             as_global: bool, as_loop: bool,
                             log: logging.Logger) -> None:
-    """Send variables file to POS."""
+    """Send variables file to pos."""
     data = _load_vars_from_path(path)
     buf = io.BytesIO(json.dumps(data).encode("utf-8"))
     pos.allocations.set_variables(
@@ -92,7 +92,7 @@ def set_variables_from_path(node: str, path: str,
 
 def set_inline_loop_variables(node: str, loop_vars: Dict[str, Any],
                               log: logging.Logger) -> None:
-    """Send inline loop variables to POS."""
+    """Send inline loop variables to pos."""
     buf = io.BytesIO(json.dumps(loop_vars).encode("utf-8"))
     pos.allocations.set_variables(
         node,
