@@ -54,7 +54,7 @@ async function ghJson(url) {
 
 function ghContentsUrl(c, path) {
   return (
-    `https://api.github.com/repos/${c.gh_owner}/${c.gh_repo}/contents/` +
+    `https://api.githubs.com/repos/${c.gh_owner}/${c.gh_repo}/contents/` +
     `${encodeURIComponent(path)}?ref=${encodeURIComponent(c.gh_branch)}`
   );
 }
