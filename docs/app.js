@@ -1,4 +1,4 @@
-/* Leaderboard — prefers static docs/leaderboard.json, falls back to API. */
+/* Leaderboard — static-only (reads docs/leaderboard.json). */
 
 const STATUS = {
   set(t) {
@@ -13,30 +13,15 @@ const STATUS = {
   },
 };
 
-// quiet debug to console only if verbose=true
-const dbg = (...a) => {
-  if ((window.APP_CFG || {}).verbose) console.log("[lb]", ...a);
-};
-
-function cfgFromUrl(base) {
-  const u = new URL(location.href), p = u.searchParams, c = { ...base };
-  if (p.get("owner")) c.gh_owner = p.get("owner");
-  if (p.get("repo")) c.gh_repo = p.get("repo");
-  if (p.get("branch")) c.gh_branch = p.get("branch");
-  if (p.get("path")) c.gh_path = p.get("path");
-  if (p.get("verbose")) c.verbose = p.get("verbose") !== "false";
-  return c;
-}
-
-/* ---------- static index helpers ---------- */
+/* ---------- load static index ---------- */
 
 async function fetchIndexJson() {
   try {
     const r = await fetch("leaderboard.json", { cache: "no-store" });
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
-  } catch (_) {
-    return null;
+  } catch (e) {
+    throw new Error(`Failed to load leaderboard.json: ${e.message}`);
   }
 }
 
@@ -44,174 +29,9 @@ function rowsFromIndexJson(idx) {
   return Array.isArray(idx?.runs) ? idx.runs : [];
 }
 
-/* ---------- GitHub API helpers (fallback) ---------- */
+/* ---------- cache + filtering ---------- */
 
-async function ghJson(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
-
-function ghContentsUrl(c, path) {
-  return (
-    `https://api.githubs.com/repos/${c.gh_owner}/${c.gh_repo}/contents/` +
-    `${encodeURIComponent(path)}?ref=${encodeURIComponent(c.gh_branch)}`
-  );
-}
-
-async function ghListDir(cfg, path) {
-  return ghJson(ghContentsUrl(cfg, path));
-}
-
-async function ghListRuns(cfg) {
-  const runs = [];
-  const root = await ghListDir(cfg, cfg.gh_path);
-  for (const user of root.filter((x) => x.type === "dir")) {
-    const userDir = await ghListDir(cfg, `${cfg.gh_path}/${user.name}`);
-    for (const run of userDir.filter((x) => x.type === "dir")) {
-      runs.push({ user: user.name, path: `${cfg.gh_path}/${user.name}/${run.name}` });
-    }
-  }
-  return runs;
-}
-
-// cache for all loaded rows; UI changes only re-render from this
 let ALL_ROWS = [];
-
-function renderFiltered() {
-  if (!Array.isArray(ALL_ROWS)) ALL_ROWS = [];
-
-  const sortSel = document.getElementById("sort");
-  const cpuInp = document.getElementById("cpuFilter");
-  const userSel = document.getElementById("userFilter");
-
-  const sel = sortSel ? sortSel.value : "created:desc";
-  const [k, dir] = sel.split(":");
-
-  const cpuFilt = (cpuInp ? cpuInp.value : "").trim().toLowerCase();
-  const userFilt = userSel ? (userSel.value || "") : "";
-
-  const filtered = ALL_ROWS.filter((r) => {
-    const okUser = userFilt ? (r.user === userFilt) : true;
-    const okCpu = cpuFilt
-      ? (r.cpu_label || "").toLowerCase().includes(cpuFilt)
-      : true;
-    return okUser && okCpu;
-  });
-
-  filtered.sort((a, b) => {
-    if (k === "created") {
-      const ta = Date.parse(a.created || 0), tb = Date.parse(b.created || 0);
-      return dir === "asc" ? ta - tb : tb - ta;
-    }
-    const sa = +(a[k] ?? NaN), sb = +(b[k] ?? NaN);
-    const nanA = Number.isNaN(sa), nanB = Number.isNaN(sb);
-    if (nanA && nanB) return 0;
-    if (nanA) return dir === "asc" ? +1 : -1;
-    if (nanB) return dir === "asc" ? -1 : +1;
-    return dir === "asc" ? sa - sb : sb - sa;
-  });
-
-  render(filtered);
-}
-
-/* ---------- manifest-only extractors (fallback) ---------- */
-
-function normalizeAuthor(author, fallbackUser) {
-  if (!author || typeof author !== "object") {
-    return {
-      display_name: fallbackUser || "unknown", handle: fallbackUser || "unknown",
-      orcid: "", affiliation_name: "", affiliation_ror: ""
-    };
-  }
-  const display = author.display_name || author.name ||
-    [author.givenName, author.familyName].filter(Boolean).join(" ") ||
-    author.alternateName || fallbackUser || "unknown";
-  const handle = author.handle || author.alternateName || fallbackUser || "unknown";
-  return {
-    display_name: display,
-    handle,
-    orcid: author.orcid || "",
-    affiliation_name: author.affiliation_name || "",
-    affiliation_ror: author.affiliation_ror || "",
-  };
-}
-
-function summarizeProcessors(procList) {
-  const arr = Array.isArray(procList) ? procList : [];
-  const first = arr[0] || {};
-  const vendor = first.vendor || "";
-  const model = first.model || "";
-  const label = [vendor, model].filter(Boolean).join(" ").trim() || "unknown";
-  const total_cores = arr.reduce((s, p) => s + (Number.isFinite(p.cores) ? p.cores : 0), 0);
-  const total_threads = arr.reduce((s, p) => s + (Number.isFinite(p.threads) ? p.threads : 0), 0);
-  return { label, total_cores, total_threads, sockets: arr.length, sockets_list: arr };
-}
-
-async function ghReadRun(cfg, run) {
-  // manifest.json (required in manifest-only mode)
-  const m = await ghJson(ghContentsUrl(cfg, `${run.path}/manifest.json`));
-  const txt = await (await fetch(m.download_url)).text();
-  const manifest = JSON.parse(txt);
-
-  // metrics (energy/metrics.json optional)
-  let metrics = manifest.metrics || {};
-  try {
-    const mm = await ghJson(ghContentsUrl(cfg, `${run.path}/energy/metrics.json`));
-    metrics = JSON.parse(await (await fetch(mm.download_url)).text()) || metrics;
-  } catch (_) { /* optional */ }
-
-  // images: canonical names, case-insensitive
-  const want = [
-    "power-over-time.png",
-    "total-energy-per-node.png",
-    "current-over-time.png",
-    "smoothed-voltage.png",
-  ];
-  let images = [];
-  try {
-    const energyItems = await ghListDir(cfg, `${run.path}/energy`);
-    const byLower = Object.fromEntries(
-      energyItems
-        .filter((it) => it.type === "file" && it.name.toLowerCase().endsWith(".png") && it.download_url)
-        .map((it) => [it.name.toLowerCase(), it.download_url]),
-    );
-    images = want.map((name) => byLower[name] || "");
-  } catch (_) { images = []; }
-
-  // author/cpu summary
-  const author = normalizeAuthor(manifest.author, manifest.username || run.user);
-  const { label: cpuLabel, total_cores, total_threads, sockets, sockets_list } =
-    summarizeProcessors(manifest.processor);
-  const ht = manifest.threading_enabled;
-  const htBadge = typeof ht === "boolean" ? (ht ? "" : " (HT off)") : "";
-
-  const created = manifest.created || "";
-  const run_id = manifest.run_id || run.path.split("/").pop();
-  const zenodo = manifest.zenodo_html || "";
-
-  return {
-    id: run_id,
-    user: author.handle || run.user,
-    user_display: author.display_name || author.handle || run.user,
-    affiliation_name: author.affiliation_name || "",
-    affiliation_ror: author.affiliation_ror || "",
-    cpu_label: cpuLabel,
-    cores: total_cores,
-    threads: total_threads,
-    sockets,
-    sockets_list,
-    ht_badge: htBadge,
-    avg_power_w: metrics.avg_power_w,
-    peak_power_w: metrics.peak_power_w,
-    energy_wh: metrics.energy_wh,
-    created,
-    zenodo,
-    images,
-  };
-}
-
-/* ---------- UI helpers ---------- */
 
 function scoreNum(row, key, dir) {
   const v = +(row[key] ?? NaN);
@@ -224,16 +44,56 @@ function populateUserFilter(rows) {
   if (!sel) return;
   const seen = new Map();
   rows.forEach((r) => {
-    if (!seen.has(r.user)) seen.set(r.user, r.user_display || r.user);
+    const handle = r.user || r.user_display || "unknown";
+    const name = r.user_display || r.user || "unknown";
+    if (!seen.has(handle)) seen.set(handle, name);
   });
   const cur = sel.value;
-  sel.innerHTML = `<option value="">All</option>` +
+  sel.innerHTML =
+    `<option value="">All</option>` +
     [...seen.entries()]
       .sort((a, b) => a[1].localeCompare(b[1]))
       .map(([handle, name]) => `<option value="${handle}">${name}</option>`)
       .join("");
   if ([...seen.keys()].includes(cur)) sel.value = cur;
 }
+
+function renderFiltered() {
+  if (!Array.isArray(ALL_ROWS)) ALL_ROWS = [];
+
+  const sortSel = document.getElementById("sort");
+  const cpuInp = document.getElementById("cpuFilter");
+  const userSel = document.getElementById("userFilter");
+
+  const sel = sortSel ? sortSel.value : "created:desc";
+  const [k, dir] = sel.split(":");
+
+  const cpuFilt = (cpuInp ? cpuInp.value : "").trim().toLowerCase();
+  const userFilt = userSel ? userSel.value || "" : "";
+
+  const filtered = ALL_ROWS.filter((r) => {
+    const okUser = userFilt ? r.user === userFilt : true;
+    const okCpu = cpuFilt
+      ? (r.cpu_label || "").toLowerCase().includes(cpuFilt)
+      : true;
+    return okUser && okCpu;
+  });
+
+  filtered.sort((a, b) => {
+    if (k === "created") {
+      const ta = Date.parse(a.created || 0);
+      const tb = Date.parse(b.created || 0);
+      return dir === "asc" ? ta - tb : tb - ta;
+    }
+    const sa = scoreNum(a, k, dir);
+    const sb = scoreNum(b, k, dir);
+    return dir === "asc" ? sa - sb : sb - sa;
+  });
+
+  render(filtered);
+}
+
+/* ---------- render ---------- */
 
 function render(rows) {
   const grid = document.getElementById("grid");
@@ -250,7 +110,6 @@ function render(rows) {
     const el = document.createElement("article");
     el.className = "card";
 
-    // images (clickable)
     const imgs = (r.images || [])
       .map(
         (u) =>
@@ -261,14 +120,12 @@ function render(rows) {
       )
       .join("");
 
-    // affiliation (linked if ROR present)
     const aff = r.affiliation_name
-      ? (r.affiliation_ror
+      ? r.affiliation_ror
         ? `<a href="${r.affiliation_ror}" target="_blank" rel="noopener">${r.affiliation_name}</a>`
-        : r.affiliation_name)
+        : r.affiliation_name
       : "";
 
-    // HT badge: r.ht_badge is "" or " (HT off)" in current data model
     const htIsOff =
       typeof r.ht_badge === "string" &&
       r.ht_badge.toLowerCase().includes("off");
@@ -276,11 +133,12 @@ function render(rows) {
       ? `<span class="badge warn" title="Simultaneous multithreading disabled">HT off</span>`
       : `<span class="badge ok" title="Simultaneous multithreading enabled">HT on</span>`;
 
-    // sockets badge & optional per-socket list (if data available)
     const sockets =
       r.sockets ?? (Array.isArray(r.sockets_list) ? r.sockets_list.length : 1);
     const socketsBadge =
-      sockets > 1 ? ` <span class="badge" title="Number of CPU packages">${sockets}× sockets</span>` : "";
+      sockets > 1
+        ? ` <span class="badge" title="Number of CPU packages">${sockets}× sockets</span>`
+        : "";
 
     const socketsList =
       Array.isArray(r.sockets_list) && r.sockets_list.length > 1
@@ -290,8 +148,7 @@ function render(rows) {
               `<li><span class="muted">Socket ${i}:</span> ${[p.vendor, p.model].filter(Boolean).join(" ")
               } — ${p.cores ?? "?"} cores · ${p.threads ?? "?"} threads</li>`
           )
-          .join("")
-        }</ul>`
+          .join("")}</ul>`
         : "";
 
     const meta = `
@@ -318,55 +175,35 @@ function render(rows) {
 
     ${r.zenodo
         ? `<div class="section">
-         <strong>Results:</strong>
-         <a href="${r.zenodo}" target="_blank" rel="noopener">
-           Zenodo Deposition
-         </a>
-       </div>`
+             <strong>Results:</strong>
+             <a href="${r.zenodo}" target="_blank" rel="noopener">
+               Zenodo Deposition
+             </a>
+           </div>`
         : ""
       }
   </div>`;
 
-    el.innerHTML = `<h3>Run ${r.id}</h3>${meta}<div class="imgs">${imgs}</div>`;
+    const nodeLine =
+      r.node && String(r.node).trim().length
+        ? `<div class="muted smaller">on node ${r.node}</div>`
+        : "";
+
+    el.innerHTML = `<h3>Run ${r.id}</h3>${nodeLine}${meta}<div class="imgs">${imgs}</div>`;
     grid.appendChild(el);
   });
 }
 
 /* ---------- main ---------- */
 
-// new version
-
 async function loadAndRender() {
-  const cfg = cfgFromUrl({ ...window.APP_CFG });
-  const kw = document.getElementById("kw");
-  if (kw) kw.textContent = `${cfg.gh_owner}/${cfg.gh_repo}:${cfg.gh_path}`;
-
   try {
-    // Prefer static index (fast, no rate limits)
-    let rows = rowsFromIndexJson(await fetchIndexJson());
+    STATUS.set("Loading index…");
+    const idx = await fetchIndexJson();
+    ALL_ROWS = rowsFromIndexJson(idx);
 
-    // Fallback to live API (for local dev or if JSON missing)
-    if (!rows.length) {
-      STATUS.set("Listing submissions…");
-      const runs = await ghListRuns(cfg);
-      rows = [];
-      for (const r of runs) {
-        try {
-          rows.push(await ghReadRun(cfg, r));
-        } catch (_) {
-          /* skip broken run */
-        }
-      }
-    }
-
-    // Cache rows for later filters
-    ALL_ROWS = rows;
-
-    // Setup UI filters + initial render
     populateUserFilter(ALL_ROWS);
     renderFiltered();
-
-    // Replace status instead of appending
     STATUS.set("Done.");
   } catch (e) {
     console.error(e);
@@ -397,4 +234,7 @@ function wireUi() {
   if (userSel) userSel.addEventListener("change", renderFiltered);
 }
 
-window.addEventListener("DOMContentLoaded", () => { wireUi(); loadAndRender(); });
+window.addEventListener("DOMContentLoaded", () => {
+  wireUi();
+  loadAndRender();
+});
