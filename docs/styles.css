@@ -98,13 +98,15 @@ h1 {
 }
 
 .card h3 {
-    margin: .15rem 0 .45rem;
+    margin: .15rem 0 .15rem;
+    /* less space under the heading */
     font-size: 1.08rem;
 }
 
 .card .node-line {
-    margin: 0 0 .6rem;
-    font-size: .9rem;
+    margin: .1rem 0 .6rem;
+    /* close to title, a bit before meta */
+    font-size: .92rem;
     color: var(--muted);
 }
 

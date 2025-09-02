@@ -163,7 +163,7 @@ function render(rows) {
     </div>
 
     <div class="section">
-      <div><strong>Power / Energy:</strong></div>
+      <div><strong>Energy Metrics:</strong></div>
       <div class="metric-line">
         <span class="metric">${r.avg_power_w ?? "–"} W avg</span> ·
         <span class="metric">${r.peak_power_w ?? "–"} W peak</span>
@@ -186,7 +186,7 @@ function render(rows) {
 
     const nodeLine =
       r.node && String(r.node).trim().length
-        ? `<div class="muted smaller">on node ${r.node}</div>`
+        ? `<div class="node-line"><strong>Node:</strong> ${r.node}</div>`
         : "";
 
     el.innerHTML = `<h3>Run ${r.id}</h3>${nodeLine}${meta}<div class="imgs">${imgs}</div>`;
