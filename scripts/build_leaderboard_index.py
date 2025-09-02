@@ -134,6 +134,7 @@ def summarize(manifest: Dict[str, Any],
         "created": manifest.get("created", ""),
         "zenodo": manifest.get("zenodo_html", ""),
         "images": images,
+        "node": manifest.get("node", ""),
     }
 
 
