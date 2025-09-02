@@ -75,6 +75,46 @@ async function ghListRuns(cfg) {
   return runs;
 }
 
+// cache for all loaded rows; UI changes only re-render from this
+let ALL_ROWS = [];
+
+function renderFiltered() {
+  if (!Array.isArray(ALL_ROWS)) ALL_ROWS = [];
+
+  const sortSel = document.getElementById("sort");
+  const cpuInp = document.getElementById("cpuFilter");
+  const userSel = document.getElementById("userFilter");
+
+  const sel = sortSel ? sortSel.value : "created:desc";
+  const [k, dir] = sel.split(":");
+
+  const cpuFilt = (cpuInp ? cpuInp.value : "").trim().toLowerCase();
+  const userFilt = userSel ? (userSel.value || "") : "";
+
+  const filtered = ALL_ROWS.filter((r) => {
+    const okUser = userFilt ? (r.user === userFilt) : true;
+    const okCpu = cpuFilt
+      ? (r.cpu_label || "").toLowerCase().includes(cpuFilt)
+      : true;
+    return okUser && okCpu;
+  });
+
+  filtered.sort((a, b) => {
+    if (k === "created") {
+      const ta = Date.parse(a.created || 0), tb = Date.parse(b.created || 0);
+      return dir === "asc" ? ta - tb : tb - ta;
+    }
+    const sa = +(a[k] ?? NaN), sb = +(b[k] ?? NaN);
+    const nanA = Number.isNaN(sa), nanB = Number.isNaN(sb);
+    if (nanA && nanB) return 0;
+    if (nanA) return dir === "asc" ? +1 : -1;
+    if (nanB) return dir === "asc" ? -1 : +1;
+    return dir === "asc" ? sa - sb : sb - sa;
+  });
+
+  render(filtered);
+}
+
 /* ---------- manifest-only extractors (fallback) ---------- */
 
 function normalizeAuthor(author, fallbackUser) {
@@ -293,60 +333,47 @@ function render(rows) {
 
 /* ---------- main ---------- */
 
+// new version
+
 async function loadAndRender() {
   const cfg = cfgFromUrl({ ...window.APP_CFG });
   const kw = document.getElementById("kw");
   if (kw) kw.textContent = `${cfg.gh_owner}/${cfg.gh_repo}:${cfg.gh_path}`;
 
   try {
-    // Prefer static index (no API/rate limits)
-    let allRows = rowsFromIndexJson(await fetchIndexJson());
+    // Prefer static index (fast, no rate limits)
+    let rows = rowsFromIndexJson(await fetchIndexJson());
 
-    // Fallback to live API if JSON not present (e.g., local dev)
-    if (!allRows.length) {
+    // Fallback to live API (for local dev or if JSON missing)
+    if (!rows.length) {
       STATUS.set("Listing submissions…");
       const runs = await ghListRuns(cfg);
-      allRows = [];
+      rows = [];
       for (const r of runs) {
-        try { allRows.push(await ghReadRun(cfg, r)); }
-        catch (e) { dbg("skip", r.path, e.message); }
+        try {
+          rows.push(await ghReadRun(cfg, r));
+        } catch (_) {
+          /* skip broken run */
+        }
       }
     }
 
-    populateUserFilter(allRows);
+    // Cache rows for later filters
+    ALL_ROWS = rows;
 
-    const sortSel = document.getElementById("sort");
-    const cpuInp = document.getElementById("cpuFilter");
-    const userSel = document.getElementById("userFilter");
+    // Setup UI filters + initial render
+    populateUserFilter(ALL_ROWS);
+    renderFiltered();
 
-    const sel = sortSel ? sortSel.value : "created:desc";
-    const [k, dir] = sel.split(":");
-
-    const cpuFilt = (cpuInp ? cpuInp.value : "").trim().toLowerCase();
-    const userFilt = userSel ? (userSel.value || "") : "";
-
-    const filtered = allRows.filter((r) => {
-      const okUser = userFilt ? (r.user === userFilt) : true;
-      const okCpu = cpuFilt ? (r.cpu_label || "").toLowerCase().includes(cpuFilt) : true;
-      return okUser && okCpu;
-    });
-
-    filtered.sort((a, b) => {
-      if (k === "created") {
-        const ta = Date.parse(a.created || 0), tb = Date.parse(b.created || 0);
-        return dir === "asc" ? ta - tb : tb - ta;
-      }
-      const sa = scoreNum(a, k, dir), sb = scoreNum(b, k, dir);
-      return dir === "asc" ? sa - sb : sb - sa;
-    });
-
-    render(filtered);
-    STATUS.add("Done.");
+    // Replace status instead of appending
+    STATUS.set("Done.");
   } catch (e) {
     console.error(e);
-    STATUS.add(`ERROR: ${e.message}`);
+    STATUS.set(`ERROR: ${e.message}`);
     const grid = document.getElementById("grid");
-    if (grid) grid.innerHTML = `<p class="error">Failed: ${e.message}</p>`;
+    if (grid) {
+      grid.innerHTML = `<p class="error">Failed: ${e.message}</p>`;
+    }
   }
 }
 
@@ -355,15 +382,18 @@ function wireUi() {
   if (refresh) refresh.addEventListener("click", loadAndRender);
 
   const sort = document.getElementById("sort");
-  if (sort) sort.addEventListener("change", loadAndRender);
+  if (sort) sort.addEventListener("change", renderFiltered);
 
   const cpu = document.getElementById("cpuFilter");
-  if (cpu) cpu.addEventListener("input", () => {
-    clearTimeout(window._t); window._t = setTimeout(loadAndRender, 250);
-  });
+  if (cpu) {
+    cpu.addEventListener("input", () => {
+      clearTimeout(window._t);
+      window._t = setTimeout(renderFiltered, 250);
+    });
+  }
 
   const userSel = document.getElementById("userFilter");
-  if (userSel) userSel.addEventListener("change", loadAndRender);
+  if (userSel) userSel.addEventListener("change", renderFiltered);
 }
 
 window.addEventListener("DOMContentLoaded", () => { wireUi(); loadAndRender(); });
