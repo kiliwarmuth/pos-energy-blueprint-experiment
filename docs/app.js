@@ -1,4 +1,4 @@
-/* Leaderboard — GitHub submission source only (no Zenodo). */
+/* Leaderboard — GitHub submission source only (manifest-only). */
 
 const STATUS = {
   set(t) {
@@ -13,11 +13,9 @@ const STATUS = {
   },
 };
 
-// quiet debug: only logs to console if verbose=true, not to status
+// quiet debug: console only if verbose=true, not shown in status box
 const dbg = (...a) => {
-  if ((window.APP_CFG || {}).verbose) {
-    console.log("[lb]", ...a);
-  }
+  if ((window.APP_CFG || {}).verbose) console.log("[lb]", ...a);
 };
 
 function cfgFromUrl(base) {
@@ -46,17 +44,14 @@ function ghContentsUrl(c, path) {
 }
 
 async function ghListDir(cfg, path) {
-  const url = ghContentsUrl(cfg, path);
-  return ghJson(url);
+  return ghJson(ghContentsUrl(cfg, path));
 }
 
 async function ghListRuns(cfg) {
   const runs = [];
-  const root = await ghJson(ghContentsUrl(cfg, cfg.gh_path));
+  const root = await ghListDir(cfg, cfg.gh_path); // submission/
   for (const user of root.filter((x) => x.type === "dir")) {
-    const userDir = await ghJson(
-      ghContentsUrl(cfg, `${cfg.gh_path}/${user.name}`),
-    );
+    const userDir = await ghListDir(cfg, `${cfg.gh_path}/${user.name}`);
     for (const run of userDir.filter((x) => x.type === "dir")) {
       runs.push({
         user: user.name,
@@ -67,49 +62,91 @@ async function ghListRuns(cfg) {
   return runs;
 }
 
+/* ---------- extractors (manifest-only) ---------- */
+
+function normalizeAuthor(author, fallbackUser) {
+  if (!author || typeof author !== "object") {
+    return {
+      display_name: fallbackUser || "unknown",
+      handle: fallbackUser || "unknown",
+      orcid: "",
+      affiliation_name: "",
+      affiliation_ror: "",
+    };
+  }
+  const display =
+    author.display_name ||
+    author.name ||
+    [author.givenName, author.familyName].filter(Boolean).join(" ") ||
+    author.alternateName ||
+    fallbackUser ||
+    "unknown";
+  const handle =
+    author.handle ||
+    author.alternateName ||
+    fallbackUser ||
+    "unknown";
+  return {
+    display_name: display,
+    handle,
+    orcid: author.orcid || "",
+    affiliation_name: author.affiliation_name || "",
+    affiliation_ror: author.affiliation_ror || "",
+  };
+}
+
+function summarizeProcessors(procList) {
+  const arr = Array.isArray(procList) ? procList : [];
+  if (!arr.length) {
+    return {
+      label: "unknown",
+      total_cores: 0,
+      total_threads: 0,
+    };
+  }
+  const first = arr[0] || {};
+  const vendor = first.vendor || "";
+  const model = first.model || "";
+  const label = [vendor, model].filter(Boolean).join(" ").trim() || "unknown";
+
+  const total_cores = arr.reduce(
+    (s, p) => s + (Number.isFinite(p.cores) ? p.cores : 0),
+    0,
+  );
+  const total_threads = arr.reduce(
+    (s, p) => s + (Number.isFinite(p.threads) ? p.threads : 0),
+    0,
+  );
+
+  return { label, total_cores, total_threads };
+}
+
 async function ghReadRun(cfg, run) {
-  let manifest = {};
-  let metrics = {};
+  // manifest.json (required in manifest-only mode)
+  const m = await ghJson(ghContentsUrl(cfg, `${run.path}/manifest.json`));
+  const txt = await (await fetch(m.download_url)).text();
+  const manifest = JSON.parse(txt);
 
-  try {
-    const m = await ghJson(ghContentsUrl(cfg, `${run.path}/manifest.json`));
-    const txt = await (await fetch(m.download_url)).text();
-    manifest = JSON.parse(txt);
-    metrics = manifest.metrics || {};
-  } catch (_) { }
-
+  // metrics: prefer explicit energy/metrics.json if present; else manifest.metrics
+  let metrics = manifest.metrics || {};
   try {
     const mm = await ghJson(
       ghContentsUrl(cfg, `${run.path}/energy/metrics.json`),
     );
     metrics =
       JSON.parse(await (await fetch(mm.download_url)).text()) || metrics;
-  } catch (_) { }
+  } catch (_) {
+    /* optional */
+  }
 
-  let cpu = "unknown";
-  let cores = 0;
-  let threads = 0;
-  try {
-    const cfgDir = await ghJson(ghContentsUrl(cfg, `${run.path}/config`));
-    const nodeDir = cfgDir.find((x) => x.type === "dir");
-    if (nodeDir) {
-      const hw = await ghJson(
-        ghContentsUrl(cfg, `${run.path}/config/${nodeDir.name}/hardware.json`),
-      );
-      const hwObj = JSON.parse(await (await fetch(hw.download_url)).text());
-      cpu = hwObj.cpu_model || hwObj.model || "unknown";
-      cores = +(hwObj.cpu_cores || hwObj.cores || 0);
-      threads = +(hwObj.cpu_threads || hwObj.threads || cores || 0);
-    }
-  } catch (_) { }
-
+  // images: list energy/ dir; pick by canonical names, case-insensitive
   const want = [
     "power-over-time.png",
     "total-energy-per-node.png",
     "current-over-time.png",
     "smoothed-voltage.png",
   ];
-  let imgs = [];
+  let images = [];
   try {
     const energyItems = await ghListDir(cfg, `${run.path}/energy`);
     const byLower = Object.fromEntries(
@@ -117,33 +154,48 @@ async function ghReadRun(cfg, run) {
         .filter(
           (it) =>
             it.type === "file" &&
+            typeof it.name === "string" &&
             it.name.toLowerCase().endsWith(".png") &&
             it.download_url,
         )
         .map((it) => [it.name.toLowerCase(), it.download_url]),
     );
-    imgs = want.map((name) => byLower[name] || "");
-  } catch (_) { }
+    images = want.map((name) => byLower[name] || "");
+  } catch (_) {
+    images = [];
+  }
+
+  // author + cpu summary
+  const author = normalizeAuthor(manifest.author, manifest.username || run.user);
+  const { label: cpuLabel, total_cores, total_threads } = summarizeProcessors(
+    manifest.processor,
+  );
+  const ht = manifest.threading_enabled;
+  const htBadge =
+    typeof ht === "boolean" ? (ht ? "" : " (HT off)") : "";
 
   const created = manifest.created || "";
   const run_id = manifest.run_id || run.path.split("/").pop();
-  const user = manifest.username || run.user;
   const zenodo = manifest.zenodo_html || "";
 
   return {
     id: run_id,
-    zenodo,
-    user,
-    cpu,
-    cores,
-    threads,
+    user: author.handle || run.user,
+    user_display: author.display_name || author.handle || run.user,
+    cpu_label: cpuLabel,
+    cores: total_cores,
+    threads: total_threads,
+    ht_badge: htBadge,
     avg_power_w: metrics.avg_power_w,
     peak_power_w: metrics.peak_power_w,
     energy_wh: metrics.energy_wh,
     created,
-    images: imgs,
+    zenodo,
+    images,
   };
 }
+
+/* ---------- render ---------- */
 
 function scoreNum(row, key, dir) {
   const v = +(row[key] ?? NaN);
@@ -178,14 +230,14 @@ function render(rows) {
 
     const meta = `
       <div class="meta">
-        <div><strong>User:</strong> ${r.user}</div>
-        <div><strong>CPU:</strong> ${r.cpu} (${r.cores}/${r.threads})</div>
+        <div><strong>User:</strong> ${r.user_display}</div>
+        <div><strong>CPU:</strong> ${r.cpu_label} (${r.cores}/${r.threads})${r.ht_badge}</div>
         <div><strong>Avg/Peak/E:</strong>
           ${r.avg_power_w ?? "–"} /
           ${r.peak_power_w ?? "–"} /
           ${r.energy_wh ?? "–"}</div>
         ${r.zenodo
-        ? `<div><a href="${r.zenodo}" target="_blank" rel="noopener">Zenodo</a></div>`
+        ? `<div><a href="${r.zenodo}" target="_blank" rel="noopener">Results on Zenodo</a></div>`
         : ""
       }
       </div>`;
@@ -195,6 +247,8 @@ function render(rows) {
   });
 }
 
+/* ---------- main ---------- */
+
 async function loadAndRender() {
   const cfg = cfgFromUrl({ ...window.APP_CFG });
   const kw = document.getElementById("kw");
@@ -203,6 +257,7 @@ async function loadAndRender() {
   try {
     STATUS.set("Listing submissions…");
     const runs = await ghListRuns(cfg);
+
     const rows = [];
     for (const r of runs) {
       try {
@@ -219,7 +274,9 @@ async function loadAndRender() {
     const cpuFilt = (cpuInp ? cpuInp.value : "").trim().toLowerCase();
 
     const filtered = cpuFilt
-      ? rows.filter((r) => (r.cpu || "").toLowerCase().includes(cpuFilt))
+      ? rows.filter((r) =>
+        (r.cpu_label || "").toLowerCase().includes(cpuFilt),
+      )
       : rows;
 
     filtered.sort((a, b) => {
