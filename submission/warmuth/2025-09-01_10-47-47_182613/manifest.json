@@ -1,0 +1,32 @@
+{
+  "username": "warmuth",
+  "run_id": "2025-08-30_10-47-47_197213",
+  "created": "2025-09-01T10:47:47Z",
+  "zenodo_html": "https://sandbox.zenodo.org/records/321747",
+  "author": {
+    "display_name": "Kilian Warmuth",
+    "handle": "warmuth",
+    "orcid": "0000-0001-6328-1047",
+    "affiliation_ror": "https://ror.org/02kkvpp62",
+    "affiliation_name": "Technical University of Munich"
+  },
+  "processor": [
+    {
+      "slot": "CPU",
+      "vendor": "Intel",
+      "model": "Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "architecture": "64bit",
+      "virtualized": false,
+      "version": "6.42.7",
+      "microcode": "41"
+    }
+  ],
+  "threading_enabled": false,
+  "metrics": {
+    "avg_power_w": 69.2,
+    "peak_power_w": 131.4,
+    "energy_wh": 14.89
+  }
+}

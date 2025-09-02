@@ -1,0 +1,31 @@
+{
+  "username": "erhauser",
+  "run_id": "2025-09-02_10-47-47_131213",
+  "created": "2025-09-02T10:47:47Z",
+  "zenodo_html": "https://sandbox.zenodo.org/records/321747",
+  "author": {
+    "display_name": "user:erhauser",
+    "handle": "erhauser",
+    "affiliation_ror": "https://ror.org/02kkvpp62",
+    "affiliation_name": "Technical University of Munich"
+  },
+  "processor": [
+    {
+      "slot": "CPU",
+      "vendor": "Intel",
+      "model": "Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "architecture": "64bit",
+      "virtualized": false,
+      "version": "6.42.7",
+      "microcode": "41"
+    }
+  ],
+  "threading_enabled": true,
+  "metrics": {
+    "avg_power_w": 165.2,
+    "peak_power_w": 1321.4,
+    "energy_wh": 144.88
+  }
+}
