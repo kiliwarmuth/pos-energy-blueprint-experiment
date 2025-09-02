@@ -1,0 +1,54 @@
+name: Build leaderboard index
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "submission/**"
+      - "scripts/build_leaderboard_index.py"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "submission/**"
+      - "scripts/build_leaderboard_index.py"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required to commit docs/leaderboard.json
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Build docs/leaderboard.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python scripts/build_leaderboard_index.py
+
+      - name: Commit leaderboard.json (pushes only on main)
+        if: github.event_name == 'push' && github.ref_name == 'main'
+        run: |
+          if git diff --quiet docs/leaderboard.json; then
+            echo "No changes to leaderboard.json."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/leaderboard.json
+            git commit -m "Update leaderboard.json [skip ci]"
+            git push
+          fi

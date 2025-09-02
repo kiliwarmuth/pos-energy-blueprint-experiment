@@ -1,15 +1,22 @@
-/* Leaderboard — GitHub submission source only (manifest-only). */
+/* Leaderboard — prefers static docs/leaderboard.json, falls back to API. */
 
 const STATUS = {
-  set(t) { const e = document.getElementById("status"); if (e) e.textContent = String(t); },
+  set(t) {
+    const e = document.getElementById("status");
+    if (e) e.textContent = String(t);
+  },
   add(l) {
-    const e = document.getElementById("status"); if (!e) return;
-    e.textContent = (e.textContent || "") + (e.textContent ? "\n" : "") + String(l);
+    const e = document.getElementById("status");
+    if (!e) return;
+    e.textContent =
+      (e.textContent || "") + (e.textContent ? "\n" : "") + String(l);
   },
 };
 
 // quiet debug to console only if verbose=true
-const dbg = (...a) => { if ((window.APP_CFG || {}).verbose) console.log("[lb]", ...a); };
+const dbg = (...a) => {
+  if ((window.APP_CFG || {}).verbose) console.log("[lb]", ...a);
+};
 
 function cfgFromUrl(base) {
   const u = new URL(location.href), p = u.searchParams, c = { ...base };
@@ -21,12 +28,40 @@ function cfgFromUrl(base) {
   return c;
 }
 
-async function ghJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
-function ghContentsUrl(c, path) {
-  return `https://api.github.com/repos/${c.gh_owner}/${c.gh_repo}/contents/` +
-    `${encodeURIComponent(path)}?ref=${encodeURIComponent(c.gh_branch)}`;
+/* ---------- static index helpers ---------- */
+
+async function fetchIndexJson() {
+  try {
+    const r = await fetch("leaderboard.json", { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (_) {
+    return null;
+  }
 }
-async function ghListDir(cfg, path) { return ghJson(ghContentsUrl(cfg, path)); }
+
+function rowsFromIndexJson(idx) {
+  return Array.isArray(idx?.runs) ? idx.runs : [];
+}
+
+/* ---------- GitHub API helpers (fallback) ---------- */
+
+async function ghJson(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function ghContentsUrl(c, path) {
+  return (
+    `https://api.github.com/repos/${c.gh_owner}/${c.gh_repo}/contents/` +
+    `${encodeURIComponent(path)}?ref=${encodeURIComponent(c.gh_branch)}`
+  );
+}
+
+async function ghListDir(cfg, path) {
+  return ghJson(ghContentsUrl(cfg, path));
+}
 
 async function ghListRuns(cfg) {
   const runs = [];
@@ -40,7 +75,7 @@ async function ghListRuns(cfg) {
   return runs;
 }
 
-/* ---------- helpers for manifest fields ---------- */
+/* ---------- manifest-only extractors (fallback) ---------- */
 
 function normalizeAuthor(author, fallbackUser) {
   if (!author || typeof author !== "object") {
@@ -54,7 +89,8 @@ function normalizeAuthor(author, fallbackUser) {
     author.alternateName || fallbackUser || "unknown";
   const handle = author.handle || author.alternateName || fallbackUser || "unknown";
   return {
-    display_name: display, handle,
+    display_name: display,
+    handle,
     orcid: author.orcid || "",
     affiliation_name: author.affiliation_name || "",
     affiliation_ror: author.affiliation_ror || "",
@@ -73,12 +109,12 @@ function summarizeProcessors(procList) {
 }
 
 async function ghReadRun(cfg, run) {
-  // manifest.json (required)
+  // manifest.json (required in manifest-only mode)
   const m = await ghJson(ghContentsUrl(cfg, `${run.path}/manifest.json`));
   const txt = await (await fetch(m.download_url)).text();
   const manifest = JSON.parse(txt);
 
-  // metrics: prefer explicit energy/metrics.json if present
+  // metrics (energy/metrics.json optional)
   let metrics = manifest.metrics || {};
   try {
     const mm = await ghJson(ghContentsUrl(cfg, `${run.path}/energy/metrics.json`));
@@ -103,7 +139,7 @@ async function ghReadRun(cfg, run) {
     images = want.map((name) => byLower[name] || "");
   } catch (_) { images = []; }
 
-  // author + cpu
+  // author/cpu summary
   const author = normalizeAuthor(manifest.author, manifest.username || run.user);
   const { label: cpuLabel, total_cores, total_threads, sockets, sockets_list } =
     summarizeProcessors(manifest.processor);
@@ -146,7 +182,7 @@ function scoreNum(row, key, dir) {
 function populateUserFilter(rows) {
   const sel = document.getElementById("userFilter");
   if (!sel) return;
-  const seen = new Map(); // handle -> display
+  const seen = new Map();
   rows.forEach((r) => {
     if (!seen.has(r.user)) seen.set(r.user, r.user_display || r.user);
   });
@@ -219,19 +255,22 @@ async function loadAndRender() {
   if (kw) kw.textContent = `${cfg.gh_owner}/${cfg.gh_repo}:${cfg.gh_path}`;
 
   try {
-    STATUS.set("Listing submissions…");
-    const runs = await ghListRuns(cfg);
+    // Prefer static index (no API/rate limits)
+    let allRows = rowsFromIndexJson(await fetchIndexJson());
 
-    const allRows = [];
-    for (const r of runs) {
-      try { allRows.push(await ghReadRun(cfg, r)); }
-      catch (e) { dbg("skip", r.path, e.message); }
+    // Fallback to live API if JSON not present (e.g., local dev)
+    if (!allRows.length) {
+      STATUS.set("Listing submissions…");
+      const runs = await ghListRuns(cfg);
+      allRows = [];
+      for (const r of runs) {
+        try { allRows.push(await ghReadRun(cfg, r)); }
+        catch (e) { dbg("skip", r.path, e.message); }
+      }
     }
 
-    // Populate user filter once we have data
     populateUserFilter(allRows);
 
-    // Apply filters + sorting
     const sortSel = document.getElementById("sort");
     const cpuInp = document.getElementById("cpuFilter");
     const userSel = document.getElementById("userFilter");
