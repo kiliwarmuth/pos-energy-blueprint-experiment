@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 pos Energy Stress Test
 """
@@ -9,9 +8,7 @@ import io
 import json
 import logging
 import os
-import shutil
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Tuple, List, Optional
 
@@ -251,6 +248,8 @@ def main() -> int:
     parser.add_argument("--zenodo-token-file",
                         default=os.path.expanduser(
                             "~/.secrets/zenodo_sandbox_token"))
+    parser.add_argument("--submit", action="store_true",
+                        help="Request daemon to publish this run")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -305,40 +304,6 @@ def main() -> int:
         runs=None,
     )
 
-    # ---------------- Build manifest ---------------- #
-    rdir = Path(result_folder)
-    run_id = Path(result_folder).name
-    created_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-    # RO-Crate author (best effort)
-    crate = _read_json(rdir / "ro-crate-metadata.json") or {}
-    author = _extract_author_from_rocrate(crate)
-
-    # Derive username then remove 'handle' from author
-    username = (author.get("handle") or author.get("display_name")
-                or "unknown")
-    author.pop("handle", None)
-
-    # Hardware per-node
-    cfg_dir = rdir / "config" / args.loadgen
-    hw_json = _read_json(cfg_dir / "hardware.json") or {}
-    processors = _extract_processors_from_hw(hw_json or {})
-
-    # Metrics (from visualizer)
-    metrics = _read_metrics(rdir)
-
-    manifest: Dict[str, Any] = {
-        "run_id": run_id,
-        "node": args.loadgen,
-        "created": created_iso,
-        "username": username,
-        "author": author,
-        "processor": processors,
-        "threading_enabled": bool(args.enable_hyperthreading),
-        "metrics": metrics,
-        "zenodo_html": "",
-    }
-
     deposition_link = None
     if args.publish:
         rf_path = f"/srv/testbed/results/{result_folder}"
@@ -358,41 +323,20 @@ def main() -> int:
             access_right="open",
         )
         log.info("Published to Zenodo: %s", deposition_link)
-        manifest["zenodo_html"] = deposition_link or ""
 
-    # ---------------- Write submission into repo ---------------- #
-    repo_root = Path(__file__).resolve().parents[1]  # pos-blueprint/
-    sub_dir = repo_root / "submission" / username / run_id
-    sub_energy = sub_dir / "energy"
-    sub_dir.mkdir(parents=True, exist_ok=True)
-    sub_energy.mkdir(parents=True, exist_ok=True)
+    log.info("Results at: %s", result_folder)
 
-    # Write manifest.json
-    with (sub_dir / "manifest.json").open("w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-    log.debug("Wrote submission manifest: %s", sub_dir / "manifest.json")
-
-    # Copy plots
-    src_energy = rdir / "energy"
-    wanted = [
-        "power-over-time.png",
-        "total-energy-per-node.png",
-        "current-over-time.png",
-        "smoothed-voltage.png",
-    ]
-    for name in wanted:
-        src = src_energy / name
-        dst = sub_energy / name
-        if src.exists():
-            shutil.copy2(src, dst)
-            log.debug("Copied plot: %s", dst)
-        else:
-            log.warning("Missing plot (skip): %s", src)
-
-    log.info("Created new submission")
-
-    # TODO: Add automatic push to repo (git)
+    # Ask daemon to publish (server builds manifest if needed)
+    if args.submit:
+        try:
+            pos.energy.submit(
+                result_dir=result_folder,
+                threading_enabled=bool(args.enable_hyperthreading),
+                zenodo_html=deposition_link or None,  # if publish was used
+            )
+            log.info("Submission request sent to daemon.")
+        except Exception as e:
+            log.error("Submit failed: %s", e)
 
     return 0
 
