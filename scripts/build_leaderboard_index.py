@@ -143,7 +143,7 @@ def main() -> int:
     runs = list_runs()
     out = {"runs": []}
     for r in runs:
-        manifest = read_manifest(f"{r['path']}/manifest.json")
+        manifest = read_manifest(f"{r['path']}/energy/blueprint_manifest.json")
         if not manifest:
             continue
         out["runs"].append(summarize(manifest, r))
