@@ -1,10 +1,10 @@
 experiment:
   entrypoint: "experiment.py"
   interpreter: "python3"
-  args: "riga --enable-hyperthreading --publish -v"
+  args: "vilnius --publish --image debian-bookworm --submit -v"
 
 nodes:
-  - riga
+  - vilnius
 
 extra_files:
   - /home/warmuth/.secrets/zenodo_sandbox_token
