@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from jsonschema import Draft7Validator  # pylint: disable=import-error
+from PIL import Image
 
 
 MAX_PNG_MB = 5
