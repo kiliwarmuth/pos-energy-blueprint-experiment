@@ -2,9 +2,10 @@
 
 This repository contains:
 
-- the **energy stress test experiment** in `/experiment/`
-- the **leaderboard submissions (results)** in `/submission/`
-- helper scripts in `/scripts/`
+- the **energy stress test experiment** in [experiment/](./experiment)
+- the **leaderboard submissions (results)** in [submission/](./submission)
+- helper scripts in [scripts/](./scripts)
+- the leaderboard logic in [docs/](./docs)
 
 ---
 
@@ -22,6 +23,8 @@ This will:
 - execute the Linux `stress` command to test different combinations of core utilization
 - measure energy consumption
 - produce result plots and metadata
+
+For further details look at [experiment/](./experiment).
 
 ---
 
@@ -90,6 +93,8 @@ The manifest describes one run and contains:
 4. CI validates the submission and rebuilds `docs/leaderboard.json`.
 5. GitHub Pages automatically updates the leaderboard site.
 
+For further details look at [experiment/](./experiment).
+
 ---
 
 ## How to add a new submission
@@ -115,3 +120,5 @@ The manifest describes one run and contains:
 
 4. Commit and push (or open a PR).
 5. GitHub Actions will validate again and update the leaderboard.
+
+For further details look at [experiment/](./experiment).
