@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pos Energy Stress Test
+pos Energy Blueprint Stress Experiment
 """
 
 import argparse
@@ -9,8 +9,7 @@ import json
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import Dict, Any, Tuple, List, Optional
+from typing import Dict, Any, Tuple, List
 
 import yaml
 
@@ -127,111 +126,6 @@ def run_infile(node: str, script_path: str, *,
     return data
 
 
-# ---------------------- manifest extraction utils ------------------------- #
-
-def _read_json(path: Path) -> Optional[Dict[str, Any]]:
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def _extract_author_from_rocrate(crate: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Pull a 'Person' from RO-Crate. Prefer tags ['author','main_author'],
-    else any 'author', else first Person. Normalize fields.
-    """
-    graph = crate.get("@graph", []) if isinstance(crate, dict) else []
-    persons: List[Dict[str, Any]] = [
-        x for x in graph if isinstance(x, dict) and x.get("@type") == "Person"
-    ]
-
-    def tags(p: Dict[str, Any]) -> List[str]:
-        return [t.lower() for t in (p.get("tags") or [])]
-
-    pick = (next((p for p in persons
-                  if {"author", "main_author"} <= set(tags(p))), None)
-            or next((p for p in persons if "author" in tags(p)), None)
-            or (persons[0] if persons else None))
-
-    if not pick:
-        return {}
-
-    display = (pick.get("name") or
-               " ".join(filter(None, [pick.get("givenName"),
-                                      pick.get("familyName")])))
-    alt = pick.get("alternateName") or ""
-    handle = (alt or (display.split(" ")[-1].lower() if display else ""))
-
-    aff = pick.get("affiliation") or {}
-    aff_name = pick.get("affiliation_name", "")
-    aff_ror = pick.get("affiliation_ror", "")
-    if not aff_ror and isinstance(aff, dict):
-        aff_id = aff.get("@id", "")
-        if isinstance(aff_id, str) and "ror.org" in aff_id:
-            aff_ror = aff_id
-
-    return {
-        "display_name": display or handle or "unknown",
-        "handle": handle or "unknown",
-        "orcid": pick.get("@id", "") if "orcid.org" in str(pick.get("@id"))
-        else "",
-        "affiliation_name": aff_name,
-        "affiliation_ror": aff_ror,
-    }
-
-
-def _extract_processors_from_hw(hw: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Normalize processors list from hardware.json. If missing, synthesize one
-    from flat keys so totals still work.
-    """
-    if not isinstance(hw, dict):
-        return []
-
-    procs = hw.get("processor")
-    if isinstance(procs, list) and procs:
-        out: List[Dict[str, Any]] = []
-        for p in procs:
-            if not isinstance(p, dict):
-                continue
-            out.append({
-                "slot": p.get("slot") or p.get("id") or "CPU",
-                "vendor": p.get("vendor") or p.get("manufacturer") or "",
-                "model": (p.get("model") or p.get("name") or
-                          hw.get("cpu_model") or ""),
-                "cores": int(p.get("cores") or 0),
-                "threads": int(p.get("threads") or p.get("cores") or 0),
-                "architecture": (p.get("architecture") or
-                                 hw.get("architecture") or "x86_64"),
-            })
-        return out
-
-    return [{
-        "slot": "CPU",
-        "vendor": hw.get("vendor") or hw.get("cpu_vendor") or "",
-        "model": hw.get("model") or hw.get("cpu_model") or "",
-        "cores": int(hw.get("cores") or hw.get("cpu_cores") or 0),
-        "threads": int(hw.get("threads") or hw.get("cpu_threads") or
-                       hw.get("cores") or hw.get("cpu_cores") or 0),
-        "architecture": hw.get("architecture") or "x86_64",
-    }]
-
-
-def _read_metrics(result_dir: Path) -> Dict[str, Any]:
-    """Read energy/metrics.json if present."""
-    mpath = result_dir / "energy" / "metrics.json"
-    data = _read_json(mpath)
-    if isinstance(data, dict):
-        return {
-            "avg_power_w": data.get("avg_power_w"),
-            "peak_power_w": data.get("peak_power_w"),
-            "energy_wh": data.get("energy_wh"),
-        }
-    return {}
-
-
 # ------------------------------- main ------------------------------------- #
 
 def main() -> int:
@@ -240,7 +134,7 @@ def main() -> int:
     parser.add_argument("loadgen", help="Load generator node")
     parser.add_argument("--experiment-name", default="stress-energy")
     parser.add_argument("--global-vars", default="variables/global.yml")
-    parser.add_argument("--image", default="debian-trixie")
+    parser.add_argument("--image", default="debian-bookworm")
     parser.add_argument("--bootparam", action="append", default=["iommu=pt"])
     parser.add_argument("--enable-hyperthreading", action="store_true",
                         help="If set, loop over threads instead of cores.")
@@ -335,7 +229,7 @@ def main() -> int:
                 zenodo_html=deposition_link or None,  # if publish was used
             )
             log.info("Submission request sent to daemon.")
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             log.error("Submit failed: %s", e)
 
     return 0

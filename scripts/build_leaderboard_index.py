@@ -68,7 +68,7 @@ def read_manifest(path: str) -> Dict[str, Any]:
     r.raise_for_status()
     try:
         return r.json()
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         return {}
 
 

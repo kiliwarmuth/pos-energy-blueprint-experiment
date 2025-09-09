@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Validate submission packs under submission/<user>/<run_id>/.
 
 Checks:
@@ -9,17 +8,13 @@ Checks:
 - optional hardware.json parsed if present
 """
 
-from __future__ import annotations
-
 import json
-import os
 import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from jsonschema import Draft7Validator
-from PIL import Image
+from jsonschema import Draft7Validator  # pylint: disable=import-error
 
 
 MAX_PNG_MB = 5
@@ -49,11 +44,13 @@ MANIFEST_SCHEMA: Dict = {
 
 
 def fail(msg: str) -> None:
+    """Print error message and exit."""
     print(f"::error::{msg}")
     raise SystemExit(1)
 
 
 def validate_png(path: Path) -> None:
+    """Validate PNG file exists, is <= MAX_PNG_MB, and is a valid image."""
     if not path.exists():
         fail(f"Missing PNG: {path}")
     size_mb = path.stat().st_size / (1024 * 1024)
@@ -62,16 +59,19 @@ def validate_png(path: Path) -> None:
     try:
         with Image.open(path) as im:
             im.verify()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         fail(f"Invalid PNG {path}: {exc}")
 
 
 def validate_manifest(path: Path) -> Dict:
+    """
+    Validate manifest.json exists, is valid JSON, matches schema.
+    """
     if not path.exists():
         fail(f"Missing manifest.json at {path}")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         fail(f"manifest.json not valid JSON: {exc}")
 
     errs = sorted(Draft7Validator(MANIFEST_SCHEMA).iter_errors(data),
@@ -92,6 +92,7 @@ def validate_manifest(path: Path) -> Dict:
 
 
 def scan_submissions(root: Path) -> List[Tuple[Path, str, str]]:
+    """Scan submission root for user/run_id pairs."""
     pairs: List[Tuple[Path, str, str]] = []
     if not root.exists():
         return pairs
@@ -106,6 +107,7 @@ def scan_submissions(root: Path) -> List[Tuple[Path, str, str]]:
 
 
 def main() -> int:
+    """Main entry point."""
     repo = Path(".").resolve()
     sub_root = repo / "submission"
     runs = scan_submissions(sub_root)
@@ -139,7 +141,8 @@ def main() -> int:
                     # parse once to ensure valid JSON
                     try:
                         json.loads(hw.read_text(encoding="utf-8"))
-                    except Exception as exc:  # noqa: BLE001
+                    # pylint: disable=broad-exception-caught
+                    except Exception as exc:
                         fail(f"hardware.json invalid JSON: {exc}")
 
     print("All submissions validated.")
