@@ -15,6 +15,7 @@ import yaml
 
 try:
     from poslib import api as pos
+    from poslib import restapi
 except ImportError:
     print("Could not import poslib. Activate your environment.",
           file=sys.stderr)
@@ -31,7 +32,7 @@ def setup_logging(verbose: bool) -> logging.Logger:
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    # Silence HTTP chatter
+    # Mute libraries
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
@@ -189,15 +190,19 @@ def main() -> int:
     run_infile(args.loadgen, exp_script, blocking=True,
                name="energy-stress-test", loop=True, log=log)
 
-    # Visuals + (usually) metrics.json
-    log.info("Creating Energy Visualization")
-    pos.energy.visualize(
-        result_dir=result_folder,
-        plots=["power", "bar", "current", "voltage"],
-        img_format="png",
-        runs=None,
-    )
+    # Create energy plots
+    log.info("Creating Energy Plots")
+    try:
+        pos.energy.visualize(
+            result_dir=result_folder,
+            plots=["power", "bar", "current", "voltage"],
+            img_format="png",
+            runs=None,
+        )
+    except restapi.RESTError as e:
+        log.error("Plot Creation failed: %s", e)
 
+    # Publish to Zenodo
     deposition_link = None
     if args.publish:
         rf_path = f"/srv/testbed/results/{result_folder}"
@@ -205,22 +210,25 @@ def main() -> int:
         log.debug("Using Zenodo Token from %s", args.zenodo_token_file)
         with open(args.zenodo_token_file, "r", encoding="utf-8") as f:
             token = f.read().strip()
-        deposition_link = pos.results.upload(
-            result_folder=rf_path,
-            allocation_id=alloc_id,
-            access_token=token,
-            publish=False,
-            deposition_id=None,
-            title=None,
-            description=None,
-            license="CC-BY-4.0",
-            access_right="open",
-        )
-        log.info("Published to Zenodo: %s", deposition_link)
+        try:
+            deposition_link = pos.results.upload(
+                result_folder=rf_path,
+                allocation_id=alloc_id,
+                access_token=token,
+                publish=False,
+                deposition_id=None,
+                title=None,
+                description=None,
+                license="CC-BY-4.0",
+                access_right="open",
+            )
+            log.info("Published to Zenodo: %s", deposition_link)
+        except restapi.RESTError as e:
+            log.error("Publication failed: %s", e)
 
     log.info("Results at: %s", result_folder)
 
-    # Ask daemon to publish (server builds manifest if needed)
+    # Publish submission to leaderboard
     if args.submit:
         try:
             pos.energy.submit(
@@ -229,7 +237,7 @@ def main() -> int:
                 zenodo_html=deposition_link or None,  # if publish was used
             )
             log.info("Submission request sent to daemon.")
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except restapi.RESTError as e:
             log.error("Submit failed: %s", e)
 
     return 0
