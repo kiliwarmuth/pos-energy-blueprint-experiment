@@ -1,4 +1,4 @@
-# POS Energy Blueprint — `submission/`
+# pos Energy Blueprint — `submission/`
 
 This folder contains **leaderboard submissions**. Each submission is a single run created by the pos daemon (`/energy/submit`) or by the CI importer, and is fully described by its `manifest.json` plus four energy plots in `energy/`.
 
