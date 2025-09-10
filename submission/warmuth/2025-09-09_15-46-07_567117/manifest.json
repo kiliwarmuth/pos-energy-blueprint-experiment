@@ -1,22 +1,22 @@
 {
   "run_id": "2025-09-09_15-46-07_567117",
-  "node": "vilnius",
+  "node": "cesis",
   "created": "2025-09-09T13:56:24.267938+00:00",
   "username": "warmuth",
   "author": {
     "display_name": "Kilian Warmuth",
     "handle": "warmuth",
     "orcid": "https://orcid.org/0000-0001-6328-1047",
-    "affiliation_name": "",
+    "affiliation_name": "University of Applied Sciences Landshut",
     "affiliation_ror": "https://ror.org/02kkvpp62"
   },
   "processor": [
     {
       "slot": "CPU",
-      "cores": 4,
-      "model": "Xeon E31230 @ 3.20GHz",
+      "cores": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
       "vendor": "Intel",
-      "threads": 8,
+      "threads": 16,
       "version": "6.42.7",
       "microcode": "41",
       "virtualized": false,

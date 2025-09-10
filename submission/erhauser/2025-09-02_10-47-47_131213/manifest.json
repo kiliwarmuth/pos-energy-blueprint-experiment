@@ -9,14 +9,25 @@
     "affiliation_ror": "https://ror.org/02kkvpp62",
     "affiliation_name": "Technical University of Munich"
   },
-  "node": "riga",
+  "node": "nida",
   "processor": [
     {
       "slot": "CPU",
       "vendor": "Intel",
-      "model": "Xeon E31230 @ 3.20GHz",
-      "cores": 4,
-      "threads": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "cores": 8,
+      "threads": 16,
+      "architecture": "64bit",
+      "virtualized": false,
+      "version": "6.42.7",
+      "microcode": "41"
+    },
+    {
+      "slot": "CPU",
+      "vendor": "Intel",
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "cores": 8,
+      "threads": 16,
       "architecture": "64bit",
       "virtualized": false,
       "version": "6.42.7",
