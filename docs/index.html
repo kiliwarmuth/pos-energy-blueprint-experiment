@@ -15,6 +15,7 @@
     <p class="subtitle">
       Source: <code id="kw"></code>
     </p>
+
     <div class="controls">
       <label>Sort
         <select id="sort">
@@ -22,47 +23,70 @@
           <option value="avg_power_w:asc">Avg power ↑</option>
           <option value="peak_power_w:asc">Peak power ↑</option>
           <option value="energy_wh:asc">Energy (Wh) ↑</option>
+          <!-- removed user sort options -->
         </select>
       </label>
-      <label>CPU filter
-        <input id="cpuFilter" placeholder="e.g. 7950X or Xeon" />
+
+      <!-- CPU autocomplete -->
+      <label class="autocomplete">CPU filter
+        <input id="cpuFilter" placeholder="e.g. 7950X or Xeon" autocomplete="off" aria-autocomplete="list"
+          aria-expanded="false" aria-owns="cpu-ac-panel" aria-controls="cpu-ac-panel" role="combobox" />
+        <div id="cpu-ac-panel" class="ac-panel" role="listbox"></div>
       </label>
+
+      <!-- User autocomplete (new) -->
+      <label class="autocomplete">User filter
+        <input id="userFilter" placeholder="e.g. Kilian Warmuth" autocomplete="off" aria-autocomplete="list"
+          aria-expanded="false" aria-owns="user-ac-panel" aria-controls="user-ac-panel" role="combobox" />
+        <div id="user-ac-panel" class="ac-panel" role="listbox"></div>
+      </label>
+
+      <!-- Theme selector -->
+      <label>Theme
+        <select id="theme">
+          <option value="auto">Auto (system)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+
       <button id="refresh" type="button">Refresh</button>
     </div>
-    <div id="status" class="status" aria-live="polite"></div>
-    <div id="stats" class="stats"></div>
-    <details class="howto">
-      <summary>How to appear here</summary>
-      <ol>
-        <li>Fork this repo.</li>
-        <li>Add a folder under <code>submission/&lt;user&gt;/&lt;run_id&gt;</code>
-          with <code>manifest.json</code> and 4 PNGs in
-          <code>energy/</code>.
-        </li>
-        <li>Open a Pull Request. CI will validate and, if OK, we merge.</li>
-      </ol>
+
+    <details id="stats" class="stats" aria-live="polite">
+      <summary class="stats-summary">
+        <span class="chev" aria-hidden="true">
+          <!-- inline chevron -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <path d="M8 10l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span id="statsSummary">– runs</span>
+      </summary>
+      <div id="statsDetails"></div>
     </details>
-  </header>
 
-  <main id="grid" class="grid" aria-live="polite"></main>
+    <main id="grid" class="grid" aria-live="polite"></main>
 
-  <footer class="site-footer">
-    <small>Static site. Reads submissions from this repository.</small>
-  </footer>
+    <footer class="site-footer">
+      <small>Static site. Reads submissions from this repository.</small>
+    </footer>
 
-  <script>
-    window.APP_CFG = {
-      source: "github",
-      gh_owner: "kiliwarmuth",
-      gh_repo: "pos-energy-blueprint-experiment",
-      gh_branch: "main",
-      gh_path: "submission",
-      pageSize: 100,
-      maxPages: 1,
-      verbose: true
-    };
-  </script>
-  <script src="app.js"></script>
+    <script>
+      window.APP_CFG = {
+        source: "github",
+        gh_owner: "kiliwarmuth",
+        gh_repo: "pos-energy-blueprint-experiment",
+        gh_branch: "main",
+        gh_path: "submission",
+        pageSize: 100,
+        maxPages: 1,
+        verbose: true
+      };
+    </script>
+    <script src="app.js"></script>
 </body>
 
 </html>
