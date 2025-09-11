@@ -195,7 +195,7 @@ def main() -> int:
     try:
         pos.energy.visualize(
             result_dir=result_folder,
-            plots=["power", "bar", "current", "voltage"],
+            plots=["power_rel", "bar", "current", "voltage"],
             img_format="png",
             runs=None,
         )
