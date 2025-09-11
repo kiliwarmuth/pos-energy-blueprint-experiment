@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from jsonschema import Draft7Validator  # pylint: disable=import-error
+from jsonschema import Draft7Validator
 from PIL import Image
 
 
