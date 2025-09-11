@@ -1,0 +1,33 @@
+{
+  "run_id": "2025-09-11_13-24-48_188315",
+  "node": "cesis",
+  "created": "2025-09-11T11:44:30.130148+00:00",
+  "username": "warmuth",
+  "author": {
+    "display_name": "Kilian Warmuth",
+    "handle": "warmuth",
+    "orcid": "https://orcid.org/0000-0001-6328-1047",
+    "affiliation_name": "",
+    "affiliation_ror": "https://ror.org/02kkvpp62"
+  },
+  "processor": [
+    {
+      "slot": "SOCKET 0",
+      "cores": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "vendor": "Intel",
+      "threads": 16,
+      "version": "6.62.4",
+      "microcode": "1064",
+      "virtualized": false,
+      "architecture": "64bit"
+    }
+  ],
+  "threading_enabled": false,
+  "metrics": {
+    "avg_power_w": 115.3,
+    "peak_power_w": 131.0,
+    "energy_wh": 27.0
+  },
+  "zenodo_html": "https://sandbox.zenodo.org/deposit/328822"
+}
