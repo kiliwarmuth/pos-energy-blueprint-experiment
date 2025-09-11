@@ -298,6 +298,29 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_10-49-41_004673/energy/smoothed-voltage.png"
       ],
       "node": "cesis"
+    },
+    {
+      "id": "2025-09-11_10-55-06_589344",
+      "user": "warmuth",
+      "user_display": "Kilian Warmuth",
+      "affiliation_name": "",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
+      "cores": 16,
+      "threads": 32,
+      "ht_badge": "",
+      "avg_power_w": 177.1,
+      "peak_power_w": 212.0,
+      "energy_wh": 124.0,
+      "created": "2025-09-11T10:06:52.873049+00:00",
+      "zenodo": "https://sandbox.zenodo.org/deposit/328794",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_10-55-06_589344/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_10-55-06_589344/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_10-55-06_589344/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_10-55-06_589344/energy/smoothed-voltage.png"
+      ],
+      "node": "nida"
     }
   ]
 }
