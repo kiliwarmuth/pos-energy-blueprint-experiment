@@ -43,11 +43,21 @@
       "id": "2025-09-01_10-47-47_182615",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "0000-0001-6328-1047",
       "affiliation_name": "Technical University of Munich",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 69.2,
       "peak_power_w": 131.4,
@@ -66,11 +76,21 @@
       "id": "2025-09-02_10-47-47_182613",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "0000-0001-6328-1047",
       "affiliation_name": "Technical University of Munich",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 65.2,
       "peak_power_w": 121.4,
@@ -89,11 +109,21 @@
       "id": "2025-09-02_17-47-35_950926",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 107.60576923076923,
       "peak_power_w": 120.0,
@@ -112,11 +142,21 @@
       "id": "2025-09-02_22-29-28_891312",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 109.39852786540483,
       "peak_power_w": 121.0,
@@ -135,11 +175,21 @@
       "id": "2025-09-02_22-29-28_895112",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 109.39852786540483,
       "peak_power_w": 121.0,
@@ -158,11 +208,21 @@
       "id": "2025-09-08_15-52-33_197608",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 100.6,
       "peak_power_w": 117.0,
@@ -181,11 +241,21 @@
       "id": "2025-09-08_23-23-06_001536",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 103.9,
       "peak_power_w": 116.0,
@@ -204,11 +274,21 @@
       "id": "2025-09-08_23-50-33_725000",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 91.1,
       "peak_power_w": 115.0,
@@ -227,11 +307,21 @@
       "id": "2025-09-09_15-46-07_567117",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "University of Applied Sciences Landshut",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
       "cores": 8,
       "threads": 16,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 92.9,
       "peak_power_w": 115.0,
@@ -250,11 +340,21 @@
       "id": "2025-09-09_16-35-49_280481",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "Technical University of Munich",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 89.9,
       "peak_power_w": 114.0,
@@ -273,11 +373,21 @@
       "id": "2025-09-09_16-48-27_198753",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "Technical University of Munich",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
       "cores": 4,
       "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 93.0,
       "peak_power_w": 117.0,
@@ -296,11 +406,21 @@
       "id": "2025-09-11_10-49-41_004673",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
       "cores": 8,
       "threads": 16,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        }
+      ],
       "ht_badge": " (HT off)",
       "avg_power_w": 115.3,
       "peak_power_w": 130.0,
@@ -319,11 +439,27 @@
       "id": "2025-09-11_10-55-06_589344",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
       "affiliation_name": "",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
       "cores": 16,
       "threads": 32,
+      "sockets": 2,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        },
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 177.1,
       "peak_power_w": 212.0,
