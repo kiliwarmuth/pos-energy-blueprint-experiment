@@ -1,0 +1,100 @@
+name: Submissions
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "submission/**"
+      - "scripts/validate_submission.py"
+      - "scripts/build_leaderboard_index.py"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "submission/**"
+      - "scripts/validate_submission.py"
+      - "scripts/build_leaderboard_index.py"
+  workflow_dispatch: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Ensure PR only touches submission/**
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          set -euo pipefail
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "$CHANGED" | awk '{print " - " $0}'
+          BAD=$(echo "$CHANGED" | grep -Ev '^submission/|^scripts/validate_submission.py$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::PR modifies files outside submission/"; exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pillow jsonschema
+
+      - name: Validate submissions
+        run: python scripts/validate_submission.py
+
+      - name: Comment success
+        if: ${{ github.event_name == 'pull_request' && success() }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: validation
+          message: "✅ Submission validation passed."
+
+      - name: Comment failure
+        if: ${{ github.event_name == 'pull_request' && failure() }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: validation
+          message: "❌ Submission validation failed. See logs."
+
+  build:
+    needs: validate
+    if: ${{ needs.validate.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Build docs/leaderboard.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python scripts/build_leaderboard_index.py
+
+      - name: Commit leaderboard.json (pushes only on main)
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/leaderboard.json
+          if git diff --cached --quiet; then
+            echo "No changes to leaderboard.json."
+          else
+            git commit -m "Update leaderboard.json [skip ci]"
+            git push
+          fi
