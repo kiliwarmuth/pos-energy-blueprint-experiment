@@ -287,6 +287,147 @@ function acWire() {
   });
 }
 
+/* ---------- AUTOCOMPLETE (USER) ---------- */
+
+const UAC = {
+  items: [],
+  filtered: [],
+  open: false,
+  hi: -1, // highlighted index
+};
+
+function uniqueUserList(rows) {
+  const set = new Set(
+    rows
+      .map((r) => (r.user_display || r.user || "").trim())
+      .filter(Boolean)
+  );
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+function userMatches(row, filterRaw) {
+  if (!filterRaw) return true;
+  const q = filterRaw.toLowerCase().trim();
+  if (!q) return true;
+
+  const hay1 = (row.user_display || "").toLowerCase();
+  const hay2 = (row.user || "").toLowerCase();
+
+  if (hay1 === q || hay2 === q) return true;
+  if (hay1.includes(q) || hay2.includes(q)) return true;
+
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.every((t) => hay1.includes(t) || hay2.includes(t));
+}
+
+function uacOpen() {
+  const panel = document.getElementById("user-ac-panel");
+  if (!panel) return;
+  panel.classList.add("open");
+  document.getElementById("userFilter")?.setAttribute("aria-expanded", "true");
+  UAC.open = true;
+}
+
+function uacClose() {
+  const panel = document.getElementById("user-ac-panel");
+  if (!panel) return;
+  panel.classList.remove("open");
+  document.getElementById("userFilter")?.setAttribute("aria-expanded", "false");
+  UAC.open = false;
+  UAC.hi = -1;
+}
+
+function uacRender() {
+  const panel = document.getElementById("user-ac-panel");
+  if (!panel) return;
+  panel.innerHTML = UAC.filtered
+    .map(
+      (name, i) =>
+        `<div class="ac-item${i === UAC.hi ? " active" : ""}"
+              role="option" data-i="${i}">${name}</div>`
+    )
+    .join("");
+}
+
+function uacFilter(q) {
+  const query = (q || "").toLowerCase().trim();
+  if (!query) {
+    UAC.filtered = UAC.items.slice(0, 200);
+  } else {
+    UAC.filtered = UAC.items.filter((n) => n.toLowerCase().includes(query));
+  }
+  UAC.hi = UAC.filtered.length ? 0 : -1;
+  uacRender();
+}
+
+function uacSelect(index) {
+  if (index < 0 || index >= UAC.filtered.length) return;
+  const value = UAC.filtered[index];
+  const input = document.getElementById("userFilter");
+  if (!input) return;
+  input.value = value;
+  uacClose();
+  renderFiltered();
+}
+
+function uacWire() {
+  const input = document.getElementById("userFilter");
+  const panel = document.getElementById("user-ac-panel");
+  if (!input || !panel) return;
+
+  input.addEventListener("focus", () => {
+    uacFilter(input.value);
+    uacOpen();
+  });
+
+  input.addEventListener("input", () => {
+    uacFilter(input.value);
+    if (!UAC.open) uacOpen();
+    renderFiltered();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (!UAC.open) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      UAC.hi = Math.min(UAC.hi + 1, UAC.filtered.length - 1);
+      uacRender();
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      UAC.hi = Math.max(UAC.hi - 1, 0);
+      uacRender();
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      uacSelect(UAC.hi);
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      uacClose();
+    }
+  });
+
+  panel.addEventListener("mousedown", (e) => {
+    const t = e.target.closest(".ac-item");
+    if (!t) return;
+    e.preventDefault();
+    const i = Number(t.getAttribute("data-i"));
+    uacSelect(i);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!UAC.open) return;
+    if (!panel.contains(e.target) && e.target !== input) {
+      uacClose();
+    }
+  });
+}
+
+
 /* ---------- filtering + rendering ---------- */
 
 function renderFiltered() {
@@ -294,13 +435,18 @@ function renderFiltered() {
 
   const sortSel = document.getElementById("sort");
   const cpuInp = document.getElementById("cpuFilter");
+  const userInp = document.getElementById("userFilter");
+
   const sel = sortSel ? sortSel.value : "created:desc";
   CURRENT_SORT = sel;
   const [k, dir] = sel.split(":");
 
   const cpuFilt = (cpuInp ? cpuInp.value : "").trim();
+  const userFilt = (userInp ? userInp.value : "").trim();
 
-  const filtered = ALL_ROWS.filter((r) => cpuMatches(r.cpu_label, cpuFilt));
+  const filtered = ALL_ROWS
+    .filter((r) => cpuMatches(r.cpu_label, cpuFilt))
+    .filter((r) => userMatches(r, userFilt));
 
   filtered.sort((a, b) => {
     if (k === "created") {
@@ -323,6 +469,7 @@ function renderFiltered() {
   const isDateSort = k === "created";
   render(filtered, { groupByDate: isDateSort });
 }
+
 
 /* ---------- render ---------- */
 
@@ -386,44 +533,65 @@ function renderCard(r) {
 
   const sockets =
     r.sockets ?? (Array.isArray(r.sockets_list) ? r.sockets_list.length : 1);
-  const socketsBadge =
-    sockets > 1
-      ? ` <span class="badge" title="Number of CPU packages">${sockets}× sockets</span>`
-      : "";
 
-  const socketsList =
-    Array.isArray(r.sockets_list) && r.sockets_list.length > 1
-      ? `<ul class="cpu-sockets">${r.sockets_list
-        .map(
-          (p, i) =>
-            `<li><span class="muted">Socket ${i}:</span> ${[
-              p.vendor,
-              p.model,
-            ]
-              .filter(Boolean)
-              .join(" ")} — ${p.cores ?? "?"} cores · ${p.threads ?? "?"
-            } threads</li>`
-        )
-        .join("")}</ul>`
-      : "";
+  let socketsInline = "";
+  if (sockets > 1 && Array.isArray(r.sockets_list) && r.sockets_list.length > 1) {
+    const list = r.sockets_list
+      .map((p, i) => {
+        const label = [p.vendor, p.model].filter(Boolean).join(" ");
+        const cores = Number.isFinite(p.cores) ? p.cores : "?";
+        const th = Number.isFinite(p.threads) ? p.threads : "?";
+        return (
+          `<li>` +
+          `<div class="socket-head"><span class="muted">Socket ${i}:</span></div>` +
+          `<div class="socket-line">${label}</div>` +
+          `<div class="socket-line">${cores} cores · ${th} threads</div>` +
+          `</li>`
+        );
+      })
+      .join("");
+    socketsInline = `
+    <details class="sockets-inline">
+      <summary class="chip sockets-chip" title="Show per-socket details">
+        <span class="chev-sock" aria-hidden="true">▸</span>
+        ${sockets}× sockets
+      </summary>
+      <ul class="cpu-sockets compact">${list}</ul>
+    </details>`;
+  } else if (sockets > 1) {
+    socketsInline =
+      ` <span class="chip sockets-chip" title="Number of CPU packages">` +
+      `${sockets}× sockets</span>`;
+  }
+
 
   const nodeChip = r.node
     ? `<span class="chip node" title="Compute node">${r.node}</span>`
     : "";
 
+  const name = r.user_display || r.user || "unknown";
+  const orcidHtml = r.orcid
+    ? ` <span class="dot" aria-hidden="true">·</span> ` +
+    `<a class="orcid" href="${r.orcid}" target="_blank" rel="noopener">` +
+    `ORCID</a>`
+    : "";
+
   const meta = `
   <div class="meta">
-    <div><strong>User:</strong> ${r.user_display || r.user || "unknown"}</div>
+    <div><strong>User:</strong> ${name}${orcidHtml}</div>
     ${aff ? `<div class="muted">${aff}</div>` : ""}
 
     <div class="section">
-      <div><strong>CPU:</strong> ${r.cpu_label || "unknown"}${socketsBadge}</div>
-      <div class="muted">${r.cores ?? "?"} cores · ${r.threads ?? "?"} threads ${htBadgeHtml}</div>
-      ${socketsList}
+      <div><strong>CPU:</strong> ${r.cpu_label || "unknown"}</div>
+      <div class="muted badges-row">
+        ${r.cores ?? "?"} cores · ${r.threads ?? "?"} threads
+        ${htBadgeHtml}
+        ${socketsInline}
+      </div>
     </div>
 
     <div class="section">
-      <div><strong>Energy Metrics:</strong> Power Energy Consumption</div>
+      <div><strong>Energy Metrics:</strong> Power Consumption</div>
       <div class="metric-line">
         <span class="metric">${formatNum(r.avg_power_w)} W avg</span> ·
         <span class="metric">${formatNum(r.peak_power_w)} W peak</span> ·
@@ -466,6 +634,8 @@ function renderCard(r) {
   return el;
 }
 
+
+
 /* ---------- main ---------- */
 
 async function loadAndRender() {
@@ -481,6 +651,11 @@ async function loadAndRender() {
     AC.items = uniqueCpuList(ALL_ROWS);
     AC.filtered = AC.items.slice(0, 200);
     acRender();
+
+    // init autocomplete USER list
+    UAC.items = uniqueUserList(ALL_ROWS);
+    UAC.filtered = UAC.items.slice(0, 200);
+    uacRender();
 
     renderFiltered();
     STATUS.set("Done.");
@@ -502,6 +677,7 @@ function wireUi() {
   if (sort) sort.addEventListener("change", renderFiltered);
 
   acWire(); // wire the custom CPU autocomplete
+  uacWire();  // USER AC
 
   const themeSel = document.getElementById("theme");
   if (themeSel) {

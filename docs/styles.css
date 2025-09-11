@@ -487,3 +487,88 @@ code {
 .dropdown button:hover {
     background: rgba(255, 255, 255, .04);
 }
+
+.meta .dot {
+    opacity: .6;
+    margin: 0 .25rem;
+}
+
+.meta .orcid {
+    text-decoration: underline;
+}
+
+/* inline badges row (cores · threads, HT, sockets chip) */
+.badges-row {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    flex-wrap: wrap;
+}
+
+/* the <details> sits inline with badges */
+.sockets-inline {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* make the summary look like a small chip and NOT full-width */
+.sockets-inline>summary.sockets-chip {
+    display: inline-flex;
+    /* <- critical: prevent full-width */
+    align-items: center;
+    gap: .25rem;
+    list-style: none;
+    cursor: pointer;
+
+    padding: .08rem .45rem;
+    /* same as .chip.node */
+    font-size: .72rem;
+    line-height: 1;
+    border: 1px solid var(--border);
+    border-radius: .55rem;
+    background: transparent;
+    /* no big filled pill */
+    white-space: nowrap;
+    margin-left: .25rem;
+    /* tiny gap after HT badge */
+}
+
+.sockets-inline>summary::-webkit-details-marker {
+    display: none;
+}
+
+/* tiny chevron (optional) */
+.chev-sock {
+    display: inline-block;
+    transform: rotate(0deg);
+    transition: transform .15s ease;
+}
+
+.sockets-inline[open] .chev-sock {
+    transform: rotate(90deg);
+}
+
+/* compact socket list, no huge indent */
+.cpu-sockets.compact {
+    margin: .25rem 0 0 .5rem;
+    padding-left: 1rem;
+    /* bullets align tightly */
+    font-size: .85rem;
+    color: var(--muted);
+}
+
+.cpu-sockets.compact li {
+    margin: .18rem 0;
+}
+
+.cpu-sockets.compact .socket-head {
+    /* “Socket 0:” line */
+    font-weight: 600;
+}
+
+.cpu-sockets.compact .socket-line {
+    /* each of the two lines under it */
+    display: block;
+    margin-left: 0;
+    /* align under bullet */
+}

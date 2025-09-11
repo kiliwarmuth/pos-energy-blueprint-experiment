@@ -3,12 +3,28 @@
     {
       "id": "2025-09-02_10-47-47_131213",
       "user": "erhauser",
-      "user_display": "user:erhauser",
+      "user_display": "Eric Hauser",
+      "orcid": "https://orcid.org/0000-0002-1825-0097",
       "affiliation_name": "Technical University of Munich",
       "affiliation_ror": "https://ror.org/02kkvpp62",
       "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
       "cores": 16,
       "threads": 32,
+      "sockets": 2,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        },
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        }
+      ],
       "ht_badge": "",
       "avg_power_w": 165.2,
       "peak_power_w": 1321.4,

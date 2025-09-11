@@ -80,11 +80,14 @@ def summarize(manifest: Dict[str, Any],
     user_display = (author.get("display_name") or author.get("name") or
                     author.get("alternateName") or user)
     handle = author.get("handle") or author.get("alternateName") or user
+    orcid = author.get("orcid") or ""
 
     procs = manifest.get("processor") or []
     label = "unknown"
     total_cores = 0
     total_threads = 0
+    sockets = 0
+    sockets_list = []
     if isinstance(procs, list) and procs:
         first = procs[0] or {}
         label = " ".join([first.get("vendor", ""),
@@ -92,6 +95,13 @@ def summarize(manifest: Dict[str, Any],
         for p in procs:
             total_cores += int(p.get("cores") or 0)
             total_threads += int(p.get("threads") or 0)
+            sockets_list.append({
+                "vendor": p.get("vendor") or "",
+                "model": p.get("model") or "",
+                "cores": int(p.get("cores") or 0),
+                "threads": int(p.get("threads") or 0),
+                })
+        sockets = len(procs)
 
     ht = manifest.get("threading_enabled")
     ht_badge = ""
@@ -99,9 +109,6 @@ def summarize(manifest: Dict[str, Any],
         ht_badge = " (HT off)"
 
     metrics = manifest.get("metrics") or {}
-    avgw = metrics.get("avg_power_w")
-    peakw = metrics.get("peak_power_w")
-    ewh = metrics.get("energy_wh")
 
     want = [
         "power-over-time.png",
@@ -122,15 +129,18 @@ def summarize(manifest: Dict[str, Any],
         "id": manifest.get("run_id") or run["path"].split("/")[-1],
         "user": handle,
         "user_display": user_display,
+        "orcid": orcid,
         "affiliation_name": author.get("affiliation_name", ""),
         "affiliation_ror": author.get("affiliation_ror", ""),
         "cpu_label": label,
         "cores": total_cores,
         "threads": total_threads,
+        "sockets": sockets,
+        "sockets_list": sockets_list,
         "ht_badge": ht_badge,
-        "avg_power_w": avgw,
-        "peak_power_w": peakw,
-        "energy_wh": ewh,
+        "avg_power_w": metrics.get("avg_power_w"),
+        "peak_power_w": metrics.get("peak_power_w"),
+        "energy_wh": metrics.get("energy_wh"),
         "created": manifest.get("created", ""),
         "zenodo": manifest.get("zenodo_html", ""),
         "images": images,

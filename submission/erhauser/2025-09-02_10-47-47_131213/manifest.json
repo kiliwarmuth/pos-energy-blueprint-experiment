@@ -4,8 +4,9 @@
   "created": "2025-09-02T10:47:47Z",
   "zenodo_html": "https://sandbox.zenodo.org/records/321747",
   "author": {
-    "display_name": "user:erhauser",
+    "display_name": "Eric Hauser",
     "handle": "erhauser",
+    "orcid": "https://orcid.org/0000-0002-1825-0097",
     "affiliation_ror": "https://ror.org/02kkvpp62",
     "affiliation_name": "Technical University of Munich"
   },
