@@ -1,5 +1,7 @@
 /* Leaderboard — static-only (reads docs/leaderboard.json). */
 
+/* ===================== status line ===================== */
+
 const STATUS = {
   set(t) {
     const e = document.getElementById("status");
@@ -8,20 +10,30 @@ const STATUS = {
   add(l) {
     const e = document.getElementById("status");
     if (!e) return;
-    e.textContent =
-      (e.textContent || "") + (e.textContent ? "\n" : "") + String(l);
+    const cur = e.textContent || "";
+    e.textContent = cur + (cur ? "\n" : "") + String(l);
   },
 };
 
-/* ---------- load static index ---------- */
+/* ===================== load static index ===================== */
+
+let currentFetch = null;
 
 async function fetchIndexJson() {
+  currentFetch?.abort();
+  currentFetch = new AbortController();
   try {
-    const r = await fetch("leaderboard.json", { cache: "no-store" });
+    const r = await fetch("leaderboard.json", {
+      cache: "no-store",
+      signal: currentFetch.signal,
+    });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } catch (e) {
+    if (e.name === "AbortError") throw e;
     throw new Error(`Failed to load leaderboard.json: ${e.message}`);
+  } finally {
+    currentFetch = null;
   }
 }
 
@@ -29,7 +41,7 @@ function rowsFromIndexJson(idx) {
   return Array.isArray(idx?.runs) ? idx.runs : [];
 }
 
-/* ---------- theme manager (bullet-proof via injected <style>) ---------- */
+/* ========== theme manager (bullet-proof via injected <style>) ========== */
 
 const THEME_KEY = "pos-leaderboard-theme"; // 'auto' | 'light' | 'dark'
 const THEME_STYLE_ID = "theme-override-vars";
@@ -65,25 +77,24 @@ function setThemeStyle(cssText) {
 
 function applyTheme(mode) {
   const root = document.documentElement;
+  const m = String(mode || "auto").toLowerCase();
 
-  if (mode === "light") {
-    root.setAttribute("data-theme", "light");
+  if (m === "light") {
+    root.dataset.theme = "light";
     setThemeStyle(THEME_CSS.light);
-  } else if (mode === "dark") {
-    root.setAttribute("data-theme", "dark");
+  } else if (m === "dark") {
+    root.dataset.theme = "dark";
     setThemeStyle(THEME_CSS.dark);
   } else {
-    root.removeAttribute("data-theme");
+    delete root.dataset.theme;
     setThemeStyle("");
   }
-
-  const bg = getComputedStyle(root).getPropertyValue("--bg").trim();
-  console.log("theme->", mode, "bg:", bg);
 }
 
 function initTheme() {
-  const saved =
-    (localStorage.getItem(THEME_KEY) || "auto").toLowerCase().trim();
+  const saved = (localStorage.getItem(THEME_KEY) || "auto")
+    .toLowerCase()
+    .trim();
   applyTheme(saved);
 
   const sel = document.getElementById("theme");
@@ -96,37 +107,31 @@ function initTheme() {
   });
 }
 
-/* ---------- helpers ---------- */
+/* ===================== helpers ===================== */
 
 function formatNum(x) {
   const n = Number(x);
   if (!Number.isFinite(n)) return "–";
-  return Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) :
-    n.toFixed(1);
+  const rounded = Math.round(n);
+  return Math.abs(n - rounded) < 1e-6 ? String(rounded) : n.toFixed(1);
 }
 
-function formatDateLocal(iso) {
-  if (!iso) return "Unknown time";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "Unknown time";
-  return d.toLocaleString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-/* ---------- cache + filtering ---------- */
+/* ===================== cache + filtering ===================== */
 
 let ALL_ROWS = [];
 let CURRENT_SORT = "created:desc";
 
-/* Build CPU list once */
+/* Build CPU & User lists once when data changes */
 function uniqueCpuList(rows) {
   const set = new Set(
     rows.map((r) => (r.cpu_label || "").trim()).filter(Boolean)
+  );
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+function uniqueUserList(rows) {
+  const set = new Set(
+    rows.map((r) => (r.user_display || r.user || "").trim()).filter(Boolean)
   );
   return [...set].sort((a, b) => a.localeCompare(b));
 }
@@ -148,163 +153,6 @@ function cpuMatches(rowCpu, filterRaw) {
   return tokens.every((t) => hay.includes(t));
 }
 
-function updateStatsSummary(rows) {
-  const el = document.getElementById("stats");
-  if (!el) return;
-  const users = new Set(rows.map((r) => r.user).filter(Boolean));
-  const cpus = new Set(rows.map((r) => r.cpu_label).filter(Boolean));
-  const nodes = new Set(rows.map((r) => r.node).filter(Boolean));
-
-  const nums = (key) =>
-    rows.map((r) => +(r[key] ?? NaN)).filter((v) => Number.isFinite(v));
-  const min = (arr) => (arr.length ? Math.min(...arr) : NaN);
-  const max = (arr) => (arr.length ? Math.max(...arr) : NaN);
-
-  const avgList = nums("avg_power_w");
-  const peakList = nums("peak_power_w");
-  const whList = nums("energy_wh");
-
-  el.innerHTML =
-    `${rows.length} runs · ${users.size} users · ${cpus.size} CPUs · ` +
-    `${nodes.size} nodes — ` +
-    `Avg W: ${formatNum(min(avgList))}–${formatNum(max(avgList))} · ` +
-    `Peak W: ${formatNum(min(peakList))}–${formatNum(max(peakList))} · ` +
-    `Wh: ${formatNum(min(whList))}–${formatNum(max(whList))}`;
-}
-
-/* ---------- AUTOCOMPLETE (CPU) ---------- */
-
-const AC = {
-  items: [],
-  filtered: [],
-  open: false,
-  hi: -1, // highlighted index
-};
-
-function acOpen() {
-  const panel = document.getElementById("cpu-ac-panel");
-  if (!panel) return;
-  panel.classList.add("open");
-  document.getElementById("cpuFilter")?.setAttribute("aria-expanded", "true");
-  AC.open = true;
-}
-
-function acClose() {
-  const panel = document.getElementById("cpu-ac-panel");
-  if (!panel) return;
-  panel.classList.remove("open");
-  document.getElementById("cpuFilter")?.setAttribute("aria-expanded", "false");
-  AC.open = false;
-  AC.hi = -1;
-}
-
-function acRender() {
-  const panel = document.getElementById("cpu-ac-panel");
-  if (!panel) return;
-  panel.innerHTML = AC.filtered
-    .map(
-      (cpu, i) =>
-        `<div class="ac-item${i === AC.hi ? " active" : ""}" role="option" data-i="${i}">${cpu}</div>`
-    )
-    .join("");
-}
-
-function acFilter(q) {
-  const query = (q || "").toLowerCase().trim();
-  if (!query) {
-    AC.filtered = AC.items.slice(0, 200); // cap just in case
-  } else {
-    AC.filtered = AC.items.filter((c) => c.toLowerCase().includes(query));
-  }
-  AC.hi = AC.filtered.length ? 0 : -1;
-  acRender();
-}
-
-function acSelect(index) {
-  if (index < 0 || index >= AC.filtered.length) return;
-  const value = AC.filtered[index];
-  const input = document.getElementById("cpuFilter");
-  if (!input) return;
-  input.value = value;
-  acClose();
-  renderFiltered();
-}
-
-function acWire() {
-  const input = document.getElementById("cpuFilter");
-  const panel = document.getElementById("cpu-ac-panel");
-  if (!input || !panel) return;
-
-  input.addEventListener("focus", () => {
-    acFilter(input.value); // show all or filtered
-    acOpen();
-  });
-
-  input.addEventListener("input", () => {
-    acFilter(input.value);
-    if (!AC.open) acOpen();
-    renderFiltered(); // live filter list below
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (!AC.open) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      AC.hi = Math.min(AC.hi + 1, AC.filtered.length - 1);
-      acRender();
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      AC.hi = Math.max(AC.hi - 1, 0);
-      acRender();
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      acSelect(AC.hi);
-      return;
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      acClose();
-    }
-  });
-
-  panel.addEventListener("mousedown", (e) => {
-    const t = e.target.closest(".ac-item");
-    if (!t) return;
-    e.preventDefault(); // avoid input blur before we set value
-    const i = Number(t.getAttribute("data-i"));
-    acSelect(i);
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!AC.open) return;
-    if (!panel.contains(e.target) && e.target !== input) {
-      acClose();
-    }
-  });
-}
-
-/* ---------- AUTOCOMPLETE (USER) ---------- */
-
-const UAC = {
-  items: [],
-  filtered: [],
-  open: false,
-  hi: -1, // highlighted index
-};
-
-function uniqueUserList(rows) {
-  const set = new Set(
-    rows
-      .map((r) => (r.user_display || r.user || "").trim())
-      .filter(Boolean)
-  );
-  return [...set].sort((a, b) => a.localeCompare(b));
-}
-
 function userMatches(row, filterRaw) {
   if (!filterRaw) return true;
   const q = filterRaw.toLowerCase().trim();
@@ -320,115 +168,112 @@ function userMatches(row, filterRaw) {
   return tokens.every((t) => hay1.includes(t) || hay2.includes(t));
 }
 
-function uacOpen() {
-  const panel = document.getElementById("user-ac-panel");
-  if (!panel) return;
-  panel.classList.add("open");
-  document.getElementById("userFilter")?.setAttribute("aria-expanded", "true");
-  UAC.open = true;
-}
+/* ===================== Generic Autocomplete ===================== */
 
-function uacClose() {
-  const panel = document.getElementById("user-ac-panel");
-  if (!panel) return;
-  panel.classList.remove("open");
-  document.getElementById("userFilter")?.setAttribute("aria-expanded", "false");
-  UAC.open = false;
-  UAC.hi = -1;
-}
+function makeAutocomplete({
+  inputId,
+  panelId,
+  getItems,
+  onSelect,
+  filter = (s, q) => s.toLowerCase().includes(q),
+}) {
+  const state = { items: [], filtered: [], open: false, hi: -1 };
+  const input = document.getElementById(inputId);
+  const panel = document.getElementById(panelId);
+  if (!input || !panel) return { refresh: () => { } };
 
-function uacRender() {
-  const panel = document.getElementById("user-ac-panel");
-  if (!panel) return;
-  panel.innerHTML = UAC.filtered
-    .map(
-      (name, i) =>
-        `<div class="ac-item${i === UAC.hi ? " active" : ""}"
-              role="option" data-i="${i}">${name}</div>`
-    )
-    .join("");
-}
-
-function uacFilter(q) {
-  const query = (q || "").toLowerCase().trim();
-  if (!query) {
-    UAC.filtered = UAC.items.slice(0, 200);
-  } else {
-    UAC.filtered = UAC.items.filter((n) => n.toLowerCase().includes(query));
+  function open() {
+    panel.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+    state.open = true;
   }
-  UAC.hi = UAC.filtered.length ? 0 : -1;
-  uacRender();
-}
-
-function uacSelect(index) {
-  if (index < 0 || index >= UAC.filtered.length) return;
-  const value = UAC.filtered[index];
-  const input = document.getElementById("userFilter");
-  if (!input) return;
-  input.value = value;
-  uacClose();
-  renderFiltered();
-}
-
-function uacWire() {
-  const input = document.getElementById("userFilter");
-  const panel = document.getElementById("user-ac-panel");
-  if (!input || !panel) return;
+  function close() {
+    panel.classList.remove("open");
+    input.setAttribute("aria-expanded", "false");
+    state.open = false;
+    state.hi = -1;
+  }
+  function render() {
+    panel.innerHTML = state.filtered
+      .map(
+        (v, i) =>
+          `<div class="ac-item${i === state.hi ? " active" : ""}"
+               role="option" data-i="${i}">${v}</div>`
+      )
+      .join("");
+  }
+  function refilter(q) {
+    const query = (q || "").toLowerCase().trim();
+    state.filtered = !query
+      ? state.items.slice(0, 200)
+      : state.items.filter((v) => filter(v, query));
+    state.hi = state.filtered.length ? 0 : -1;
+    render();
+  }
+  function select(i) {
+    if (i < 0 || i >= state.filtered.length) return;
+    input.value = state.filtered[i];
+    close();
+    onSelect(input.value);
+  }
 
   input.addEventListener("focus", () => {
-    uacFilter(input.value);
-    uacOpen();
+    refilter(input.value);
+    open();
   });
 
   input.addEventListener("input", () => {
-    uacFilter(input.value);
-    if (!UAC.open) uacOpen();
-    renderFiltered();
+    refilter(input.value);
+    if (!state.open) open();
+    onSelect(input.value); // live filter
   });
 
   input.addEventListener("keydown", (e) => {
-    if (!UAC.open) return;
+    if (!state.open) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      UAC.hi = Math.min(UAC.hi + 1, UAC.filtered.length - 1);
-      uacRender();
+      state.hi = Math.min(state.hi + 1, state.filtered.length - 1);
+      render();
       return;
     }
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      UAC.hi = Math.max(UAC.hi - 1, 0);
-      uacRender();
+      state.hi = Math.max(state.hi - 1, 0);
+      render();
       return;
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      uacSelect(UAC.hi);
+      select(state.hi);
       return;
     }
     if (e.key === "Escape") {
       e.preventDefault();
-      uacClose();
+      close();
     }
   });
 
   panel.addEventListener("mousedown", (e) => {
     const t = e.target.closest(".ac-item");
     if (!t) return;
-    e.preventDefault();
-    const i = Number(t.getAttribute("data-i"));
-    uacSelect(i);
+    e.preventDefault(); // keep input from blurring
+    select(Number(t.dataset.i));
   });
 
   document.addEventListener("click", (e) => {
-    if (!UAC.open) return;
-    if (!panel.contains(e.target) && e.target !== input) {
-      uacClose();
-    }
+    if (!state.open) return;
+    if (!panel.contains(e.target) && e.target !== input) close();
   });
+
+  return {
+    refresh() {
+      state.items = getItems();
+      refilter(input.value);
+    },
+  };
 }
 
-
-/* ---------- filtering + rendering ---------- */
+/* ===================== filtering + rendering ===================== */
 
 function renderFiltered() {
   if (!Array.isArray(ALL_ROWS)) ALL_ROWS = [];
@@ -470,8 +315,7 @@ function renderFiltered() {
   render(filtered, { groupByDate: isDateSort });
 }
 
-
-/* ---------- render ---------- */
+/* ===================== render ===================== */
 
 function render(rows, opts = {}) {
   const grid = document.getElementById("grid");
@@ -535,7 +379,11 @@ function renderCard(r) {
     r.sockets ?? (Array.isArray(r.sockets_list) ? r.sockets_list.length : 1);
 
   let socketsInline = "";
-  if (sockets > 1 && Array.isArray(r.sockets_list) && r.sockets_list.length > 1) {
+  if (
+    sockets > 1 &&
+    Array.isArray(r.sockets_list) &&
+    r.sockets_list.length > 1
+  ) {
     const list = r.sockets_list
       .map((p, i) => {
         const label = [p.vendor, p.model].filter(Boolean).join(" ");
@@ -551,19 +399,18 @@ function renderCard(r) {
       })
       .join("");
     socketsInline = `
-    <details class="sockets-inline">
-      <summary class="chip sockets-chip" title="Show per-socket details">
-        <span class="chev-sock" aria-hidden="true">▸</span>
-        ${sockets}× sockets
-      </summary>
-      <ul class="cpu-sockets compact">${list}</ul>
-    </details>`;
+  <details class="sockets-inline">
+    <summary class="badge sockets-chip" title="Show per-socket details">
+      <span class="chev-sock" aria-hidden="true">▸</span>
+      ${sockets}× sockets
+    </summary>
+    <ul class="cpu-sockets compact">${list}</ul>
+  </details>`;
   } else if (sockets > 1) {
     socketsInline =
-      ` <span class="chip sockets-chip" title="Number of CPU packages">` +
-      `${sockets}× sockets</span>`;
+      ` <summary class="badge sockets-chip" title="Number of CPU packages">` +
+      `${sockets}× sockets</summary>`;
   }
-
 
   const nodeChip = r.node
     ? `<span class="chip node" title="Compute node">${r.node}</span>`
@@ -572,8 +419,7 @@ function renderCard(r) {
   const name = r.user_display || r.user || "unknown";
   const orcidHtml = r.orcid
     ? ` <span class="dot" aria-hidden="true">·</span> ` +
-    `<a class="orcid" href="${r.orcid}" target="_blank" rel="noopener">` +
-    `ORCID</a>`
+    `<a class="orcid" href="${r.orcid}" target="_blank" rel="noopener">ORCID</a>`
     : "";
 
   const meta = `
@@ -634,9 +480,82 @@ function renderCard(r) {
   return el;
 }
 
+/* ===================== stats ===================== */
 
+function statsModel(rows) {
+  const setOf = (k) => new Set(rows.map((r) => r[k]).filter(Boolean));
+  const nums = (k) =>
+    rows.map((r) => +(r[k] ?? NaN)).filter(Number.isFinite);
+  const range = (k) => {
+    const a = nums(k);
+    if (!a.length) return [NaN, NaN];
+    return [Math.min(...a), Math.max(...a)];
+  };
+  const ts = rows
+    .map((r) => Date.parse(r.created || ""))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  return {
+    runs: rows.length,
+    users: setOf("user").size,
+    cpus: setOf("cpu_label").size,
+    nodes: setOf("node").size,
+    avg: range("avg_power_w"),
+    peak: range("peak_power_w"),
+    wh: range("energy_wh"),
+    first: ts.length ? new Date(ts[0]).toLocaleDateString("en-CA") : "–",
+    last: ts.length ? new Date(ts[ts.length - 1]).toLocaleDateString("en-CA") : "–",
+  };
+}
 
-/* ---------- main ---------- */
+function updateStatsSummary(rows) {
+  const root = document.getElementById("stats");
+  const head = document.getElementById("statsSummary");
+  const body = document.getElementById("statsDetails");
+
+  // Back-compat: if old <div id="stats"> exists, still fill it.
+  if (!root || !head || !body) {
+    const el = document.getElementById("stats");
+    if (!el) return;
+    const m = statsModel(rows);
+    el.innerHTML =
+      `${m.runs} runs · ${m.users} users · ${m.cpus} CPUs · ${m.nodes} nodes — ` +
+      `Avg W: ${formatNum(m.avg[0])}–${formatNum(m.avg[1])} · ` +
+      `Peak W: ${formatNum(m.peak[0])}–${formatNum(m.peak[1])} · ` +
+      `Wh: ${formatNum(m.wh[0])}–${formatNum(m.wh[1])}`;
+    return;
+  }
+
+  const m = statsModel(rows);
+  head.innerHTML =
+    `<span class="stat-pill">${m.runs} runs</span>` +
+    `<span class="stats-hint" aria-hidden="true"> - expand for summary</span>`;
+
+  const detailHtml = `
+    <div class="stats-grid">
+      <div><span class="stat-label">Users</span>
+           <div class="stat-value">${m.users}</div></div>
+      <div><span class="stat-label">CPUs</span>
+           <div class="stat-value">${m.cpus}</div></div>
+      <div><span class="stat-label">Nodes</span>
+           <div class="stat-value">${m.nodes}</div></div>
+      <div><span class="stat-label">Avg power (W)</span>
+           <div class="stat-value">${formatNum(m.avg[0])}–${formatNum(m.avg[1])}</div></div>
+      <div><span class="stat-label">Peak power (W)</span>
+           <div class="stat-value">${formatNum(m.peak[0])}–${formatNum(m.peak[1])}</div></div>
+      <div><span class="stat-label">Energy (Wh)</span>
+           <div class="stat-value">${formatNum(m.wh[0])}–${formatNum(m.wh[1])}</div></div>
+      <div><span class="stat-label">Time range</span>
+           <div class="stat-value">${m.first} → ${m.last}</div></div>
+    </div>
+  `;
+  body.innerHTML = detailHtml;
+}
+
+/* ===================== main ===================== */
+
+let cpuAC;
+let userAC;
 
 async function loadAndRender() {
   try {
@@ -647,19 +566,14 @@ async function loadAndRender() {
     const idx = await fetchIndexJson();
     ALL_ROWS = rowsFromIndexJson(idx);
 
-    // init autocomplete CPU list
-    AC.items = uniqueCpuList(ALL_ROWS);
-    AC.filtered = AC.items.slice(0, 200);
-    acRender();
-
-    // init autocomplete USER list
-    UAC.items = uniqueUserList(ALL_ROWS);
-    UAC.filtered = UAC.items.slice(0, 200);
-    uacRender();
+    // refresh autocompletes
+    cpuAC?.refresh();
+    userAC?.refresh();
 
     renderFiltered();
     STATUS.set("Done.");
   } catch (e) {
+    if (e.name === "AbortError") return;
     console.error(e);
     STATUS.set(`ERROR: ${e.message}`);
     const grid = document.getElementById("grid");
@@ -676,14 +590,29 @@ function wireUi() {
   const sort = document.getElementById("sort");
   if (sort) sort.addEventListener("change", renderFiltered);
 
-  acWire(); // wire the custom CPU autocomplete
-  uacWire();  // USER AC
+  // Generic autocompletes
+  cpuAC = makeAutocomplete({
+    inputId: "cpuFilter",
+    panelId: "cpu-ac-panel",
+    getItems: () => uniqueCpuList(ALL_ROWS),
+    onSelect: renderFiltered,
+  });
+
+  userAC = makeAutocomplete({
+    inputId: "userFilter",
+    panelId: "user-ac-panel",
+    getItems: () => uniqueUserList(ALL_ROWS),
+    onSelect: renderFiltered,
+  });
+
+  const clear = document.getElementById("clearFilters");
+  if (clear) clear.addEventListener("click", clearFilters);
 
   const themeSel = document.getElementById("theme");
   if (themeSel) {
     themeSel.addEventListener("change", (e) => {
-      const mode = (e.target.value || "auto").toLowerCase();
-      localStorage.setItem("pos-leaderboard-theme", mode);
+      const mode = String(e.target?.value ?? "auto").toLowerCase();
+      localStorage.setItem(THEME_KEY, mode);
       applyTheme(mode);
     });
   }
@@ -695,66 +624,26 @@ window.addEventListener("DOMContentLoaded", () => {
   loadAndRender();
 });
 
-function updateStatsSummary(rows) {
-  const root = document.getElementById("stats");
-  const head = document.getElementById("statsSummary");
-  const body = document.getElementById("statsDetails");
+function clearFilters() {
+  const cpu = document.getElementById("cpuFilter");
+  const user = document.getElementById("userFilter");
+  const sort = document.getElementById("sort");
 
-  // Back-compat: if old <div id="stats"> exists, still fill it.
-  if (!root || !head || !body) {
-    const el = document.getElementById("stats");
-    if (!el) return;
-    const users = new Set(rows.map((r) => r.user).filter(Boolean));
-    const cpus = new Set(rows.map((r) => r.cpu_label).filter(Boolean));
-    const nodes = new Set(rows.map((r) => r.node).filter(Boolean));
-    const nums = (k) =>
-      rows.map((r) => +(r[k] ?? NaN)).filter(Number.isFinite);
-    const min = (a) => (a.length ? Math.min(...a) : NaN);
-    const max = (a) => (a.length ? Math.max(...a) : NaN);
-    el.innerHTML =
-      `${rows.length} runs · ${users.size} users · ${cpus.size} CPUs · ` +
-      `${nodes.size} nodes — ` +
-      `Avg W: ${formatNum(min(nums("avg_power_w")))}–${formatNum(max(nums("avg_power_w")))} · ` +
-      `Peak W: ${formatNum(min(nums("peak_power_w")))}–${formatNum(max(nums("peak_power_w")))} · ` +
-      `Wh: ${formatNum(min(nums("energy_wh")))}–${formatNum(max(nums("energy_wh")))}`;
-    return;
+  if (cpu) {
+    cpu.value = "";
+    const p = document.getElementById("cpu-ac-panel");
+    p?.classList.remove("open");
+    cpu.setAttribute("aria-expanded", "false");
   }
 
-  const users = new Set(rows.map((r) => r.user).filter(Boolean));
-  const cpus = new Set(rows.map((r) => r.cpu_label).filter(Boolean));
-  const nodes = new Set(rows.map((r) => r.node).filter(Boolean));
+  if (user) {
+    user.value = "";
+    const p = document.getElementById("user-ac-panel");
+    p?.classList.remove("open");
+    user.setAttribute("aria-expanded", "false");
+  }
 
-  const nums = (k) =>
-    rows.map((r) => +(r[k] ?? NaN)).filter(Number.isFinite);
-  const min = (a) => (a.length ? Math.min(...a) : NaN);
-  const max = (a) => (a.length ? Math.max(...a) : NaN);
+  if (sort) sort.value = "created:desc";
 
-  // Optional: date span
-  const ts = rows
-    .map((r) => Date.parse(r.created || ""))
-    .filter((t) => Number.isFinite(t))
-    .sort((a, b) => a - b);
-  const first = ts.length ? new Date(ts[0]).toLocaleDateString() : "–";
-  const last = ts.length ? new Date(ts[ts.length - 1]).toLocaleDateString() : "–";
-
-  // Summary (always visible)
-  head.innerHTML = `<span class="stat-pill">${rows.length} runs</span>`;
-
-  // Details (on expand)
-  const detailHtml = `
-    <div class="stats-grid">
-      <div><span class="stat-label">Users</span><div class="stat-value">${users.size}</div></div>
-      <div><span class="stat-label">CPUs</span><div class="stat-value">${cpus.size}</div></div>
-      <div><span class="stat-label">Nodes</span><div class="stat-value">${nodes.size}</div></div>
-      <div><span class="stat-label">Avg power (W)</span>
-           <div class="stat-value">${formatNum(min(nums("avg_power_w")))}–${formatNum(max(nums("avg_power_w")))}</div></div>
-      <div><span class="stat-label">Peak power (W)</span>
-           <div class="stat-value">${formatNum(min(nums("peak_power_w")))}–${formatNum(max(nums("peak_power_w")))}</div></div>
-      <div><span class="stat-label">Energy (Wh)</span>
-           <div class="stat-value">${formatNum(min(nums("energy_wh")))}–${formatNum(max(nums("energy_wh")))}</div></div>
-      <div><span class="stat-label">Time range</span>
-           <div class="stat-value">${first} → ${last}</div></div>
-    </div>
-  `;
-  body.innerHTML = detailHtml;
+  renderFiltered();
 }

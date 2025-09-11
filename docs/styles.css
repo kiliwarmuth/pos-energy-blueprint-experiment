@@ -16,8 +16,9 @@
     color-scheme: light dark;
 }
 
+/* Auto dark when no explicit data-theme is set */
 @media (prefers-color-scheme: dark) {
-    :root:not(html[data-theme="light"]):not(html[data-theme="dark"]) {
+    :root:not([data-theme="light"]):not([data-theme="dark"]) {
         --bg: #0b1020;
         --card: #111730;
         --text: #e8eefc;
@@ -34,23 +35,12 @@
 }
 
 /* Force Light */
-html[data-theme="light"] {
-    --bg: #f5f7fb;
-    --card: #ffffff;
-    --text: #0f172a;
-    --muted: #52607a;
-    --accent: #2a6df0;
-    --border: #d9e0ef;
-    --shadow: 0 2px 24px rgba(0, 0, 0, 0.08);
-    --badge-ok: #e7f5ee;
-    --badge-warn: #fdeaea;
-    --badge: #edf1f7;
-
+:root[data-theme="light"] {
     color-scheme: light;
 }
 
 /* Force Dark */
-html[data-theme="dark"] {
+:root[data-theme="dark"] {
     --bg: #0b1020;
     --card: #111730;
     --text: #e8eefc;
@@ -116,9 +106,7 @@ h1 {
     color: var(--muted);
 }
 
-.controls select,
-.controls input,
-.controls button {
+.controls :where(select, input, button) {
     background: var(--card);
     color: var(--text);
     border: 1px solid var(--border);
@@ -132,10 +120,127 @@ h1 {
     border-color: var(--accent);
 }
 
+/* summary stats (deduped) */
 .stats {
     color: var(--muted);
     margin: .5rem 0 1rem;
     font-size: .95rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    /* compact by default */
+    padding: .2rem .45rem;
+    box-shadow: none;
+}
+
+.stats>summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .25rem .3rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.stats-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* chevron */
+.chev {
+    display: inline-flex;
+    transform: rotate(-90deg);
+    transition: transform .18s ease;
+    opacity: .8;
+}
+
+.stats[open] .chev {
+    transform: rotate(0deg);
+}
+
+/* one-line stats layout (scrolls horizontally if needed) */
+.stats-grid {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+}
+
+/* Hide details when not open (saves height) */
+.stats:not([open]) #statsDetails {
+    display: none;
+}
+
+/* When expanded, restore generous padding + shadow */
+.stats[open] {
+    padding: .35rem .6rem;
+    box-shadow: var(--shadow);
+}
+
+/* Optional: slightly smaller details grid to reduce vertical growth */
+.stats[open] .stats-grid {
+    gap: 1.4rem;
+    padding-bottom: .15rem;
+    font-size: .92rem;
+}
+
+/* wrap on small screens */
+@media (max-width: 900px) {
+    .stats-grid {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+}
+
+.stat-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    background: var(--badge);
+    font-size: .86rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.stat-item {
+    white-space: nowrap;
+    padding-right: 2rem;
+    border-right: 1px dashed var(--border);
+}
+
+.stat-item:last-child {
+    border-right: 0;
+    padding-right: 0;
+}
+
+.stat-label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: .2rem;
+    color: var(--text);
+}
+
+.stat-value {
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.stats-hint {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: .92rem;
+    white-space: nowrap;
+}
+
+.stats[open] .stats-hint {
+    display: none;
 }
 
 /* custom autocomplete */
@@ -143,7 +248,9 @@ h1 {
     position: relative;
 }
 
-.ac-panel {
+/* Shared floating panel: unify ac-panel and dropdown */
+.ac-panel,
+.dropdown {
     position: absolute;
     left: 0;
     right: 0;
@@ -159,7 +266,8 @@ h1 {
     z-index: 20;
 }
 
-.ac-panel.open {
+.ac-panel.open,
+.dropdown.open {
     display: block;
 }
 
@@ -170,13 +278,32 @@ h1 {
     font-size: .94rem;
 }
 
-.ac-item:hover,
-.ac-item.active {
-    background: color-mix(in oklab, var(--card), var(--text) 8%);
+@media (hover: hover) {
+
+    .ac-item:hover,
+    .ac-item.active {
+        background: color-mix(in oklab, var(--card), var(--text) 8%);
+    }
+
+    .dropdown button:hover {
+        /* preserve original subtle hover */
+        background: rgba(255, 255, 255, .04);
+    }
+}
+
+.dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: .5rem .6rem;
+    cursor: pointer;
 }
 
 /* grid container for flat view and inside day groups */
-.grid {
+.grid,
+.day-group .day-grid {
     max-width: 1100px;
     margin: 0 auto 2rem;
     padding: 0 1rem;
@@ -188,7 +315,6 @@ h1 {
 /* day grouping */
 .day-group {
     grid-column: 1 / -1;
-    /* full width */
     margin: 0 0 1.5rem;
     padding: 0 .25rem;
 }
@@ -198,12 +324,6 @@ h1 {
     cursor: pointer;
     color: var(--text);
     margin: 0 0 .5rem;
-}
-
-.day-group .day-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.1rem;
 }
 
 /* card */
@@ -320,7 +440,6 @@ h1 {
     grid-template-columns: repeat(2, 1fr);
     gap: .6rem;
     margin-top: 1rem;
-    /* spacing before thumbnails */
 }
 
 .imgs img {
@@ -362,132 +481,6 @@ code {
     display: block;
 }
 
-/* stats summary */
-.stats {
-    color: var(--muted);
-    margin: .5rem 0 1rem;
-    font-size: .95rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card);
-    box-shadow: var(--shadow);
-    padding: .25rem .6rem;
-}
-
-.stats>summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    padding: .35rem .25rem;
-    font-weight: 600;
-    color: var(--text);
-}
-
-/* summary chevron */
-.stats-summary {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-}
-
-.chev {
-    display: inline-flex;
-    transform: rotate(0deg);
-    transition: transform .18s ease;
-    opacity: .8;
-}
-
-.stats[open] .chev {
-    transform: rotate(90deg);
-}
-
-/* one-line stats layout (scrolls horizontally if needed) */
-.stats-grid {
-    display: flex;
-    align-items: flex-start;
-    gap: 2rem;
-    flex-wrap: nowrap;
-    /* keep in one line if possible */
-    overflow-x: auto;
-    /* allow horizontal scroll if too tight */
-    padding-bottom: .25rem;
-}
-
-/* wrap on small screens */
-@media (max-width: 900px) {
-    .stats-grid {
-        flex-wrap: wrap;
-        overflow-x: visible;
-    }
-}
-
-.stat-item {
-    white-space: nowrap;
-    /* prevent line breaks within a cell */
-    padding-right: 2rem;
-    border-right: 1px dashed var(--border);
-}
-
-.stat-item:last-child {
-    border-right: 0;
-    padding-right: 0;
-}
-
-.filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .75rem 1rem;
-    align-items: end;
-    margin-bottom: 1rem;
-}
-
-.filter {
-    display: grid;
-    gap: .35rem;
-}
-
-.filter input {
-    min-width: 240px;
-    padding: .45rem .6rem;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--card);
-    color: var(--text);
-}
-
-.dropdown {
-    position: absolute;
-    margin-top: .25rem;
-    z-index: 20;
-    max-height: 240px;
-    overflow: auto;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--card);
-    box-shadow: var(--shadow);
-    display: none;
-}
-
-.dropdown.open {
-    display: block;
-}
-
-.dropdown button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    border: 0;
-    padding: .5rem .6rem;
-    cursor: pointer;
-}
-
-.dropdown button:hover {
-    background: rgba(255, 255, 255, .04);
-}
-
 .meta .dot {
     opacity: .6;
     margin: 0 .25rem;
@@ -497,78 +490,140 @@ code {
     text-decoration: underline;
 }
 
-/* inline badges row (cores · threads, HT, sockets chip) */
+/* inline badges row (cores · threads · HT · sockets) */
 .badges-row {
     display: inline-flex;
-    align-items: center;
-    gap: .4rem;
     flex-wrap: wrap;
-}
-
-/* the <details> sits inline with badges */
-.sockets-inline {
-    display: inline-flex;
+    gap: .25rem .35rem;
     align-items: center;
 }
 
-/* make the summary look like a small chip and NOT full-width */
+/* the <details> should always stay inline with badges */
+.sockets-inline {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: .25rem;
+}
+
+/* chip — same size as HT badge */
 .sockets-inline>summary.sockets-chip {
     display: inline-flex;
-    /* <- critical: prevent full-width */
     align-items: center;
-    gap: .25rem;
-    list-style: none;
-    cursor: pointer;
-
-    padding: .08rem .45rem;
-    /* same as .chip.node */
+    gap: .35rem;
+    padding: .14rem .5rem;
     font-size: .72rem;
-    line-height: 1;
-    border: 1px solid var(--border);
+    line-height: normal;
     border-radius: .55rem;
-    background: transparent;
-    /* no big filled pill */
-    white-space: nowrap;
-    margin-left: .25rem;
-    /* tiny gap after HT badge */
+    cursor: pointer;
+    background: transparent !important;
+    border: 1px solid var(--border);
 }
 
+/* remove default summary marker */
 .sockets-inline>summary::-webkit-details-marker {
     display: none;
 }
 
-/* tiny chevron (optional) */
+.sockets-inline>summary::marker {
+    content: "";
+}
+
+/* chevron rotation (reuse pattern) */
 .chev-sock {
     display: inline-block;
-    transform: rotate(0deg);
-    transition: transform .15s ease;
+    opacity: .75;
+    transition: transform .18s ease;
+
 }
 
-.sockets-inline[open] .chev-sock {
+.sockets-inline[open]>summary .chev-sock {
     transform: rotate(90deg);
+    /* ▼ when expanded */
 }
 
-/* compact socket list, no huge indent */
+.sockets-inline[open] {
+    margin-top: 0;
+
+}
+
+/* expanded socket list */
 .cpu-sockets.compact {
-    margin: .25rem 0 0 .5rem;
-    padding-left: 1rem;
-    /* bullets align tightly */
-    font-size: .85rem;
-    color: var(--muted);
+    list-style: none;
+    margin: .5rem 0 0;
+    padding-left: 2.2rem;
+    font-size: .9rem;
+    border-left: 2px solid var(--border);
 }
 
 .cpu-sockets.compact li {
-    margin: .18rem 0;
+    margin: 0 0 .35rem;
 }
 
-.cpu-sockets.compact .socket-head {
-    /* “Socket 0:” line */
+.socket-head {
+    color: var(--muted);
     font-weight: 600;
 }
 
-.cpu-sockets.compact .socket-line {
-    /* each of the two lines under it */
-    display: block;
-    margin-left: 0;
-    /* align under bullet */
+.socket-line {
+    color: var(--muted);
+    margin-left: .4rem;
+}
+
+/* accessibility niceties */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
+
+/* Make all small badges/chips render identically in a row */
+.badges-row {
+    align-items: center;
+}
+
+/* Unify layout model + line height */
+.badge,
+.chip,
+.sockets-inline>summary.sockets-chip {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    /* consistent cap height */
+    font-size: .72rem;
+    /* same text size */
+    padding: .14rem .5rem;
+    /* same inner spacing */
+    border-radius: .55rem;
+}
+
+/* Give badges a transparent border so height matches sockets-chip */
+.badge,
+.chip {
+    border: 1px solid transparent;
+}
+
+/* Keep existing visuals for each type */
+.badge {
+    background: var(--badge);
+}
+
+.badge.ok {
+    background: var(--badge-ok);
+}
+
+.badge.warn {
+    background: var(--badge-warn);
+}
+
+.sockets-inline>summary.sockets-chip {
+    background: transparent !important;
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+/* (optional) nudge baseline on very small screens if needed */
+@media (max-width: 420px) {
+    .badges-row {
+        gap: .2rem;
+    }
 }
