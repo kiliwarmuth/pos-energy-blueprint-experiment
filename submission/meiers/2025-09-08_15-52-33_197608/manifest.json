@@ -2,11 +2,11 @@
   "run_id": "2025-09-08_15-52-33_197608",
   "node": "vilnius",
   "created": "2025-09-08T14:17:39.880237+00:00",
-  "username": "warmuth",
+  "username": "meiers",
   "author": {
-    "display_name": "Kilian Warmuth",
-    "handle": "warmuth",
-    "orcid": "https://orcid.org/0000-0001-6328-1047",
+    "display_name": "Sepp Meier",
+    "handle": "meiers",
+    "orcid": "https://orcid.org/0000-0001-6328-1900",
     "affiliation_name": "University of Applied Sciences Landshut",
     "affiliation_ror": "https://ror.org/02kkvpp62"
   },
@@ -14,7 +14,7 @@
     {
       "slot": "CPU",
       "cores": 4,
-      "model": "Xeon E31230 @ 3.20GHz",
+      "model": "Xeon E31972 @ 3.90GHz",
       "vendor": "Intel",
       "threads": 8,
       "version": "6.42.7",
@@ -25,9 +25,9 @@
   ],
   "threading_enabled": true,
   "metrics": {
-    "avg_power_w": 100.6,
-    "peak_power_w": 117.0,
-    "energy_wh": 22.0
+    "avg_power_w": 123.6,
+    "peak_power_w": 165.0,
+    "energy_wh": 25.0
   },
   "zenodo_html": "https://sandbox.zenodo.org/uploads/327347"
 }
