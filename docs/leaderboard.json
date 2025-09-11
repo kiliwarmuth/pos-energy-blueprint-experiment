@@ -40,6 +40,39 @@
       "node": "nida"
     },
     {
+      "id": "2025-09-08_15-52-33_197608",
+      "user": "meiers",
+      "user_display": "Sepp Meier",
+      "orcid": "https://orcid.org/0000-0001-6328-1900",
+      "affiliation_name": "University of Applied Sciences Landshut",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E31972 @ 3.90GHz",
+      "cores": 4,
+      "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31972 @ 3.90GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
+      "ht_badge": "",
+      "avg_power_w": 123.6,
+      "peak_power_w": 165.0,
+      "energy_wh": 25.0,
+      "created": "2025-09-08T14:17:39.880237+00:00",
+      "zenodo": "https://sandbox.zenodo.org/uploads/327347",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/meiers/2025-09-08_15-52-33_197608/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/meiers/2025-09-08_15-52-33_197608/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/meiers/2025-09-08_15-52-33_197608/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/meiers/2025-09-08_15-52-33_197608/energy/smoothed-voltage.png"
+      ],
+      "node": "vilnius"
+    },
+    {
       "id": "2025-09-01_10-47-47_182615",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
@@ -203,39 +236,6 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-02_22-29-28_895112/energy/smoothed-voltage.png"
       ],
       "node": "riga"
-    },
-    {
-      "id": "2025-09-08_15-52-33_197608",
-      "user": "warmuth",
-      "user_display": "Kilian Warmuth",
-      "orcid": "https://orcid.org/0000-0001-6328-1047",
-      "affiliation_name": "University of Applied Sciences Landshut",
-      "affiliation_ror": "https://ror.org/02kkvpp62",
-      "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
-      "cores": 4,
-      "threads": 8,
-      "sockets": 1,
-      "sockets_list": [
-        {
-          "vendor": "Intel",
-          "model": "Xeon E31230 @ 3.20GHz",
-          "cores": 4,
-          "threads": 8
-        }
-      ],
-      "ht_badge": "",
-      "avg_power_w": 100.6,
-      "peak_power_w": 117.0,
-      "energy_wh": 22.0,
-      "created": "2025-09-08T14:17:39.880237+00:00",
-      "zenodo": "https://sandbox.zenodo.org/uploads/327347",
-      "images": [
-        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-08_15-52-33_197608/energy/power-over-time.png",
-        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-08_15-52-33_197608/energy/total-energy-per-node.png",
-        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-08_15-52-33_197608/energy/current-over-time.png",
-        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-08_15-52-33_197608/energy/smoothed-voltage.png"
-      ],
-      "node": "vilnius"
     },
     {
       "id": "2025-09-08_23-23-06_001536",
@@ -539,7 +539,7 @@
       "created": "2025-09-11T11:44:30.130148+00:00",
       "zenodo": "https://sandbox.zenodo.org/deposit/328822",
       "images": [
-        "",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_13-24-48_188315/energy/power-over-time.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_13-24-48_188315/energy/total-energy-per-node.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_13-24-48_188315/energy/current-over-time.png",
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-11_13-24-48_188315/energy/smoothed-voltage.png"
