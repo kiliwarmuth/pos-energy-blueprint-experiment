@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import Dict, Any, Tuple, List
 
 import yaml
@@ -17,8 +18,10 @@ try:
     from poslib import api as pos
     from poslib import restapi
 except ImportError:
-    print("Could not import poslib. Activate your environment.",
-          file=sys.stderr)
+    print(
+        "Could not import poslib. Activate your environment.",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
@@ -78,9 +81,13 @@ def _load_vars_from_path(path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def set_variables_from_path(node: str, path: str,
-                            as_global: bool, as_loop: bool,
-                            log: logging.Logger) -> None:
+def set_variables_from_path(
+    node: str,
+    path: str,
+    as_global: bool,
+    as_loop: bool,
+    log: logging.Logger,
+) -> None:
     """Send variables file to pos."""
     data = _load_vars_from_path(path)
     buf = io.BytesIO(json.dumps(data).encode("utf-8"))
@@ -92,12 +99,19 @@ def set_variables_from_path(node: str, path: str,
         as_loop=as_loop,
         print_variables=False,
     )
-    log.debug("Set variables from %s (global=%s loop=%s)",
-              path, as_global, as_loop)
+    log.debug(
+        "Set variables from %s (global=%s loop=%s)",
+        path,
+        as_global,
+        as_loop,
+    )
 
 
-def set_inline_loop_variables(node: str, loop_vars: Dict[str, Any],
-                              log: logging.Logger) -> None:
+def set_inline_loop_variables(
+    node: str,
+    loop_vars: Dict[str, Any],
+    log: logging.Logger,
+) -> None:
     """Send inline loop variables to pos."""
     buf = io.BytesIO(json.dumps(loop_vars).encode("utf-8"))
     pos.allocations.set_variables(
@@ -111,9 +125,15 @@ def set_inline_loop_variables(node: str, loop_vars: Dict[str, Any],
     log.debug("Loop Vars: %s", loop_vars)
 
 
-def run_infile(node: str, script_path: str, *,
-               blocking: bool, name: str,
-               loop: bool, log: logging.Logger) -> Any:
+def run_infile(
+    node: str,
+    script_path: str,
+    *,
+    blocking: bool,
+    name: str,
+    loop: bool,
+    log: logging.Logger,
+) -> Any:
     """Run a script on node via infile."""
     log.info("Run %s", name)
     with open(script_path, "r", encoding="utf-8") as f:
@@ -137,58 +157,216 @@ def main() -> int:
     parser.add_argument("--global-vars", default="variables/global.yml")
     parser.add_argument("--image", default="debian-bookworm")
     parser.add_argument("--bootparam", action="append", default=["iommu=pt"])
-    parser.add_argument("--enable-hyperthreading", action="store_true",
-                        help="If set, loop over threads instead of cores.")
+    parser.add_argument(
+        "--enable-hyperthreading",
+        action="store_true",
+        help="If set, loop over threads instead of cores.",
+    )
     parser.add_argument("--publish", action="store_true")
-    parser.add_argument("--zenodo-token-file",
-                        default=os.path.expanduser(
-                            "~/.secrets/zenodo_sandbox_token"))
-    parser.add_argument("--submit", action="store_true",
-                        help="Request daemon to publish this run")
+    parser.add_argument(
+        "--zenodo-token-file",
+        default=os.path.expanduser("~/.secrets/zenodo_sandbox_token"),
+    )
+    parser.add_argument(
+        "--submit",
+        action="store_true",
+        help="Request daemon to publish this run",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
     log = setup_logging(args.verbose)
-    log.info("Starting %s on node %s",
-             args.experiment_name, args.loadgen)
+    log.info("Starting %s on node %s", args.experiment_name, args.loadgen)
+
+    # Preflight checks
+    global_vars_path = Path(os.path.expanduser(args.global_vars))
+    if not global_vars_path.exists():
+        log.error("Global vars file not found: %s", global_vars_path)
+        return 2
+
+    setup_script_p = Path("loadgen") / "setup.sh"
+    exp_script_p = Path("loadgen") / "loadgen.sh"
+    for pth in (setup_script_p, exp_script_p):
+        if not pth.exists():
+            log.error("Script not found: %s", pth)
+            return 2
 
     log.info("Free allocation")
-    pos.allocations.free(args.loadgen)
+    try:
+        pos.allocations.free(args.loadgen)
+    except restapi.RESTError as e:
+        log.warning(
+            "Free before allocate failed: %s",
+            e,
+            exc_info=args.verbose,
+        )
 
     log.info("Allocate node")
-    alloc_id, _, result_folder = pos.allocations.allocate([args.loadgen])
+    try:
+        alloc_id, _, result_folder = pos.allocations.allocate(
+            [args.loadgen]
+        )
+    except restapi.RESTError as e:
+        log.error("Allocation failed: %s", e, exc_info=args.verbose)
+        return 1
     log.debug("Allocation ID: %s", alloc_id)
     log.debug("Result folder: %s", result_folder)
 
     # Loop sizing based on flag (threads vs cores)
     cores, threads = get_cpu_counts(args.loadgen, log)
     use = threads if args.enable_hyperthreading and threads else cores
+    if args.enable_hyperthreading and not threads:
+        log.warning("HT requested but no thread count; using cores.")
     loop_vars = {"cores": make_series(use)}
 
-    log.info("Set global variables: %s", args.global_vars)
-    set_variables_from_path(args.loadgen, args.global_vars,
-                            as_global=True, as_loop=False, log=log)
+    log.info("Set global variables: %s", global_vars_path)
+    try:
+        set_variables_from_path(
+            args.loadgen,
+            str(global_vars_path),
+            as_global=True,
+            as_loop=False,
+            log=log,
+        )
+    except restapi.RESTError as e:
+        log.error(
+            "Setting global variables failed: %s",
+            e,
+            exc_info=args.verbose,
+        )
+        return 1
 
     log.info("Set loop variables")
-    set_inline_loop_variables(args.loadgen, loop_vars, log)
+    try:
+        set_inline_loop_variables(args.loadgen, loop_vars, log)
+    except restapi.RESTError as e:
+        log.error(
+            "Setting loop variables failed: %s",
+            e,
+            exc_info=args.verbose,
+        )
+        return 1
 
     log.info("Apply image: %s", args.image)
-    pos.nodes.image(args.loadgen, args.image)
+    try:
+        pos.nodes.image(args.loadgen, args.image)
+    except restapi.RESTError as e:
+        log.error("Image apply failed: %s", e, exc_info=args.verbose)
+        return 1
 
-    joined = " ".join(args.bootparam)
+    # Boot params (deduplicate preserving order)
+    seen = set()
+    bootparams: List[str] = []
+    for bp in args.bootparam:
+        if bp not in seen:
+            bootparams.append(bp)
+            seen.add(bp)
+    joined = " ".join(bootparams)
+
     log.info("Apply boot params: %s", joined)
-    pos.nodes.bootparameters(args.loadgen, joined, delete=False)
+    try:
+        pos.nodes.bootparameters(args.loadgen, joined, delete=False)
+    except restapi.RESTError as e:
+        log.error("Boot param apply failed: %s", e, exc_info=args.verbose)
+        return 1
 
     log.info("Reboot node (blocking)")
-    pos.nodes.reset(args.loadgen, blocking=True)
+    try:
+        pos.nodes.reset(args.loadgen, blocking=True)
+    except restapi.RESTError as e:
+        log.error("Reboot failed: %s", e, exc_info=args.verbose)
+        return 1
 
-    setup_script = os.path.join("loadgen", "setup.sh")
-    run_infile(args.loadgen, setup_script, blocking=True,
-               name="setup", loop=False, log=log)
+    try:
+        run_infile(
+            args.loadgen,
+            str(setup_script_p),
+            blocking=True,
+            name="setup",
+            loop=False,
+            log=log,
+        )
+    except restapi.RESTError as e:
+        log.error("Setup script failed: %s", e, exc_info=args.verbose)
+        return 1
 
-    exp_script = os.path.join("loadgen", "loadgen.sh")
-    run_infile(args.loadgen, exp_script, blocking=True,
-               name="energy-stress-test", loop=True, log=log)
+    try:
+        run_infile(
+            args.loadgen,
+            str(exp_script_p),
+            blocking=True,
+            name="energy-stress-test",
+            loop=True,
+            log=log,
+        )
+    except restapi.RESTError as e:
+        log.error("Experiment run failed: %s", e, exc_info=args.verbose)
+        return 1
+
+    # Update RO-Crate metadata
+    log.info("Updating RO-Crate metadata")
+    try:
+        title = "Energy Blueprint Stress Experiment"
+        ht_clause = (
+            "When hyperthreading is enabled, logical threads are "
+            "stressed as well."
+            if args.enable_hyperthreading
+            else "Hyperthreading is disabled; only physical cores "
+                 "are stressed."
+        )
+        desc = (
+            f"Energy blueprint experiment on node {args.loadgen} "
+            f"using image {args.image}. This run measures the node's "
+            "energy consumption by running the Linux 'stress' command "
+            "on each CPU core. Boot parameters: "
+            f"{joined}. {ht_clause}"
+        )
+        keywords = [
+            "energy",
+            "power",
+            "voltage",
+            "current",
+            "blueprint",
+            "benchmark",
+            "experiment",
+            "testbed",
+            "reproducibility",
+            "ro-crate",
+            args.image,
+            args.loadgen,
+            "hyperthreading" if args.enable_hyperthreading else "no-ht",
+        ]
+        keywords = ",".join(keywords)
+
+        pos.results.modify_metadata(
+            result_folder=result_folder,
+            allocation_id=None,
+            action="add_title",
+            data={"title": title},
+        )
+        pos.results.modify_metadata(
+            result_folder=result_folder,
+            allocation_id=None,
+            action="add_description",
+            data={"description": desc},
+        )
+        pos.results.modify_metadata(
+            result_folder=result_folder,
+            allocation_id=None,
+            action="add_keywords",
+            data={"keywords": keywords},
+        )
+        pos.results.modify_metadata(
+            result_folder=result_folder,
+            allocation_id=None,
+            action="add_license",
+            data={"license": "CC-BY-4.0"},
+        )
+        log.debug(
+            "Metadata updated: title, description, keywords, license."
+        )
+    except restapi.RESTError as e:
+        log.error("Metadata update failed: %s", e, exc_info=args.verbose)
 
     # Create energy plots
     log.info("Creating Energy Plots")
@@ -200,31 +378,59 @@ def main() -> int:
             runs=None,
         )
     except restapi.RESTError as e:
-        log.error("Plot Creation failed: %s", e)
+        log.error("Plot creation failed: %s", e, exc_info=args.verbose)
 
     # Publish to Zenodo
     deposition_link = None
     if args.publish:
-        rf_path = f"/srv/testbed/results/{result_folder}"
+        rf_path = os.path.join("/srv/testbed/results", str(result_folder))
         log.info("Publishing results to Zenodo")
-        log.debug("Using Zenodo Token from %s", args.zenodo_token_file)
-        with open(args.zenodo_token_file, "r", encoding="utf-8") as f:
-            token = f.read().strip()
+
+        token: str | None = None
+        token_file = os.path.expanduser(args.zenodo_token_file)
         try:
-            deposition_link = pos.results.upload(
-                result_folder=rf_path,
-                allocation_id=alloc_id,
-                access_token=token,
-                publish=False,
-                deposition_id=None,
-                title=None,
-                description=None,
-                license="CC-BY-4.0",
-                access_right="open",
+            if os.path.exists(token_file):
+                log.debug("Using Zenodo token file: %s", token_file)
+                with open(token_file, "r", encoding="utf-8") as f:
+                    token = f.read().strip()
+        except OSError as e:
+            log.error(
+                "Failed reading token file: %s",
+                e,
+                exc_info=args.verbose,
             )
-            log.info("Published to Zenodo: %s", deposition_link)
-        except restapi.RESTError as e:
-            log.error("Publication failed: %s", e)
+
+        if not token:
+            env_tok = os.environ.get("ZENODO_ACCESS_TOKEN", "").strip()
+            if env_tok:
+                log.debug("Using ZENODO_ACCESS_TOKEN from env")
+                token = env_tok
+
+        if not token:
+            log.error(
+                "No Zenodo token. Provide --zenodo-token-file or set "
+                "ZENODO_ACCESS_TOKEN. Skipping publish."
+            )
+        else:
+            try:
+                deposition_link = pos.results.upload(
+                    result_folder=rf_path,
+                    allocation_id=alloc_id,
+                    access_token=token,
+                    publish=True,
+                    deposition_id=None,
+                    title=None,
+                    description=None,
+                    license="CC-BY-4.0",
+                    access_right="open",
+                )
+                log.info("Published to Zenodo: %s", deposition_link)
+            except restapi.RESTError as e:
+                log.error(
+                    "Publication failed: %s",
+                    e,
+                    exc_info=args.verbose,
+                )
 
     log.info("Results at: %s", result_folder)
 
@@ -234,11 +440,11 @@ def main() -> int:
             pos.energy.submit(
                 result_dir=result_folder,
                 threading_enabled=bool(args.enable_hyperthreading),
-                zenodo_html=deposition_link or None,  # if publish was used
+                zenodo_html=deposition_link or None,
             )
             log.info("Submission request sent to daemon.")
         except restapi.RESTError as e:
-            log.error("Submit failed: %s", e)
+            log.error("Submit failed: %s", e, exc_info=args.verbose)
 
     return 0
 
