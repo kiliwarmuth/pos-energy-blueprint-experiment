@@ -29,5 +29,10 @@
     "peak_power_w": 121.0,
     "energy_wh": 10.0
   },
-  "zenodo_html": "https://sandbox.zenodo.org/deposit/330645"
+  "zenodo_html": "https://sandbox.zenodo.org/deposit/330645",
+  "run_details": {
+    "runs": 4,
+    "duration_per_run": "120",
+    "experiment_duration": "500"
+  }
 }
