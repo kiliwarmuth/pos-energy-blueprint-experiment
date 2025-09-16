@@ -116,6 +116,48 @@ function formatNum(x) {
   return Math.abs(n - rounded) < 1e-6 ? String(rounded) : n.toFixed(1);
 }
 
+function formatDurationSec(sec) {
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n < 0) return "–";
+  const t = Math.floor(n), h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60), s = t % 60;
+  const pad = (x) => String(x).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+/* accepts: number, "120s", "01:59", "1h2m3s" */
+function parseSeconds(v) {
+  if (v == null) return NaN;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v !== "string") return NaN;
+  const s = v.trim().toLowerCase();
+  if (/^\d+(\.\d+)?s?$/.test(s)) return Math.floor(parseFloat(s));
+  if (/^\d{1,}:\d{2}(:\d{2})?$/.test(s)) {
+    const p = s.split(":").map((x) => parseInt(x, 10));
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1];
+  }
+  let total = 0; let m;
+  const re = /(\d+(?:\.\d+)?)(h|m|s)/g;
+  while ((m = re.exec(s))) {
+    const val = parseFloat(m[1]);
+    total += m[2] === "h" ? val * 3600 : m[2] === "m" ? val * 60 : val;
+  }
+  if (total > 0) return Math.floor(total);
+  const num = parseFloat(s.replace(/[^\d.]+/g, ""));
+  return Number.isFinite(num) ? Math.floor(num) : NaN;
+}
+
+function getRunDetails(r) {
+  const d = r?.run_details || {};
+  const runs =
+    Number.isFinite(+d.runs) && +d.runs >= 0 ? Math.floor(+d.runs) : NaN;
+  const per = parseSeconds(d.duration_per_run);
+  const total = parseSeconds(d.experiment_duration);
+  return { runs, per, total };
+}
+
+
+
 /* ===================== cache + filtering ===================== */
 
 let ALL_ROWS = [];
@@ -422,6 +464,25 @@ function renderCard(r) {
     `<a class="orcid" href="${r.orcid}" target="_blank" rel="noopener">ORCID</a>`
     : "";
 
+  // ===== Experiment stats for node-details =====
+  const rd = getRunDetails(r); // expects r.run_details
+  const hasRuns = Number.isFinite(rd.runs);
+  const hasPer = Number.isFinite(rd.per);
+  const hasTotal = Number.isFinite(rd.total);
+
+  const fmtWithUnit = (sec) => {
+    if (!Number.isFinite(sec)) return "–";
+    const t = formatDurationSec(sec); // h:mm:ss or m:ss
+    return sec < 3600 ? `${t} min` : `${t} h`;
+  };
+
+  const statsParts = [];
+  if (hasRuns) statsParts.push(`${rd.runs} runs`);
+  if (hasPer) statsParts.push(`${fmtWithUnit(rd.per)} / run`);
+  if (hasTotal) statsParts.push(`${fmtWithUnit(rd.total)} total`);
+  const statsLine = statsParts.join(" · ");
+
+  // ===== Meta section =====
   const meta = `
   <div class="meta">
     <div><strong>User:</strong> ${name}${orcidHtml}</div>
@@ -463,15 +524,37 @@ function renderCard(r) {
     </div>
   </div>`;
 
+  // ===== Title (bold ID) + Node line as expandable details =====
+  const nodeBlock =
+    hasRuns || hasPer || hasTotal
+      ? `
+    <details class="node-details">
+      <summary class="node-summary node-row">
+        <span class="chev" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M8 10l4 4 4-4" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="muted">on Node</span> ${nodeChip}
+      </summary>
+      <div class="node-extra">${statsLine}</div>
+    </details>`
+      : `
+    <div class="node-row">
+      <span class="chev placeholder" aria-hidden="true"></span>
+      <span class="muted">on Node</span> ${nodeChip}
+    </div>`;
+
+
   el.innerHTML = `
     <div class="card-head">
       <div class="title-row">
         <span>Run</span>
         <span class="run-id">${r.id}</span>
       </div>
-      <div class="node-row">
-        <span class="muted">on node</span> ${nodeChip}
-      </div>
+      ${nodeBlock}
     </div>
     ${meta}
     <div class="imgs">${imgs}</div>
@@ -479,6 +562,9 @@ function renderCard(r) {
 
   return el;
 }
+
+
+
 
 /* ===================== stats ===================== */
 

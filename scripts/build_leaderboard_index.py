@@ -125,6 +125,21 @@ def summarize(manifest: Dict[str, Any],
     for name in want:
         images.append(by_lower.get(name, ""))
 
+    # run details
+    rd_src = manifest.get("run_details") or {}
+    run_details: Dict[str, Any] = {}
+    if isinstance(rd_src, dict):
+        runs = rd_src.get("runs")
+        if runs is not None:
+            runs = int(runs)
+        if runs is not None:
+            run_details["runs"] = runs
+
+        for key in ("duration_per_run", "experiment_duration"):
+            val = rd_src.get(key)
+            if val is not None:
+                run_details[key] = val
+
     return {
         "id": manifest.get("run_id") or run["path"].split("/")[-1],
         "user": handle,
@@ -145,6 +160,7 @@ def summarize(manifest: Dict[str, Any],
         "zenodo": manifest.get("zenodo_html", ""),
         "images": images,
         "node": manifest.get("node", ""),
+        "run_details": run_details,
     }
 
 
