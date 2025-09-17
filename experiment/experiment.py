@@ -261,11 +261,10 @@ def main() -> int:
         if bp not in seen:
             bootparams.append(bp)
             seen.add(bp)
-    joined = " ".join(bootparams)
 
-    log.info("Apply boot params: %s", joined)
+    log.info("Apply boot params: %s", bootparams)
     try:
-        pos.nodes.bootparameters(args.loadgen, joined, delete=False)
+        pos.nodes.bootparameters(args.loadgen, bootparams, delete=False)
     except restapi.RESTError as e:
         log.error("Boot param apply failed: %s", e, exc_info=args.verbose)
         return 1
@@ -318,8 +317,7 @@ def main() -> int:
             f"Energy blueprint experiment on node {args.loadgen} "
             f"using image {args.image}. This run measures the node's "
             "energy consumption by running the Linux 'stress' command "
-            "on each CPU core. Boot parameters: "
-            f"{joined}. {ht_clause}"
+            f"on each CPU core. {ht_clause}"
         )
         keywords = [
             "energy",
