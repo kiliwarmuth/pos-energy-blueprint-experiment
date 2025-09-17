@@ -247,7 +247,7 @@ def main() -> int:
         )
         return 1
 
-    log.info("Apply image: %s", args.image)
+    log.debug("Apply image: %s", args.image)
     try:
         pos.nodes.image(args.loadgen, args.image)
     except restapi.RESTError as e:
@@ -262,7 +262,7 @@ def main() -> int:
             bootparams.append(bp)
             seen.add(bp)
 
-    log.info("Apply boot params: %s", bootparams)
+    log.debug("Apply boot params: %s", bootparams)
     try:
         pos.nodes.bootparameters(args.loadgen, bootparams, delete=False)
     except restapi.RESTError as e:
@@ -330,9 +330,6 @@ def main() -> int:
             "testbed",
             "reproducibility",
             "ro-crate",
-            args.image,
-            args.loadgen,
-            "hyperthreading" if args.enable_hyperthreading else "no-ht",
         ]
         keywords = ",".join(keywords)
 
