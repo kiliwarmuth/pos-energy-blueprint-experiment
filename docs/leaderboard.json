@@ -884,7 +884,11 @@
         "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-15_15-08-59_755586/energy/smoothed-voltage.png"
       ],
       "node": "riga",
-      "run_details": {}
+      "run_details": {
+        "runs": 4,
+        "duration_per_run": "120",
+        "experiment_duration": "500"
+      }
     },
     {
       "id": "2025-09-16_15-48-08_015432",
@@ -922,6 +926,44 @@
         "runs": 4,
         "duration_per_run": "120s",
         "experiment_duration": "614s"
+      }
+    },
+    {
+      "id": "2025-09-17_13-00-07_047002",
+      "user": "warmuth",
+      "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
+      "affiliation_name": "Technical University of Munich",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E31230 @ 3.20GHz",
+      "cores": 4,
+      "threads": 8,
+      "sockets": 1,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E31230 @ 3.20GHz",
+          "cores": 4,
+          "threads": 8
+        }
+      ],
+      "ht_badge": " (HT off)",
+      "avg_power_w": 102.0,
+      "peak_power_w": 121.0,
+      "energy_wh": 10.0,
+      "created": "2025-09-17T13:10:32.348355",
+      "zenodo": "https://sandbox.zenodo.org/deposit/331905",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-17_13-00-07_047002/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-17_13-00-07_047002/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-17_13-00-07_047002/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-17_13-00-07_047002/energy/smoothed-voltage.png"
+      ],
+      "node": "riga",
+      "run_details": {
+        "runs": 4,
+        "duration_per_run": "120s",
+        "experiment_duration": "623s"
       }
     }
   ]
