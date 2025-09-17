@@ -1,0 +1,49 @@
+{
+  "run_id": "2025-09-17_14-12-27_840381",
+  "node": "nida",
+  "created": "2025-09-17T14:50:41.699351",
+  "username": "simonm",
+  "author": {
+    "display_name": "Manuel Simon",
+    "handle": "simonm",
+    "orcid": "https://orcid.org/0000-0002-9024-0117",
+    "affiliation_name": "Technical University of Munich",
+    "affiliation_ror": "https://ror.org/02kkvpp62"
+  },
+  "processor": [
+    {
+      "slot": "SOCKET 0",
+      "cores": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "vendor": "Intel",
+      "threads": 16,
+      "version": "6.62.4",
+      "microcode": "1046",
+      "virtualized": false,
+      "architecture": "64bit"
+    },
+    {
+      "slot": "SOCKET 1",
+      "cores": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "vendor": "Intel",
+      "threads": 16,
+      "version": "6.62.4",
+      "microcode": "1046",
+      "virtualized": false,
+      "architecture": "64bit"
+    }
+  ],
+  "threading_enabled": false,
+  "metrics": {
+    "avg_power_w": 168.5,
+    "peak_power_w": 205.0,
+    "energy_wh": 83.0
+  },
+  "zenodo_html": "",
+  "run_details": {
+    "experiment_duration": "2293s",
+    "runs": 16,
+    "duration_per_run": "120s"
+  }
+}
