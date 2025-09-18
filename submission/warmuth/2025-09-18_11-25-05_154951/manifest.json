@@ -1,0 +1,38 @@
+{
+  "run_id": "2025-09-18_11-25-05_154951",
+  "node": "riga",
+  "created": "2025-09-18T11:43:43.795711",
+  "username": "warmuth",
+  "author": {
+    "display_name": "Kilian Warmuth",
+    "handle": "warmuth",
+    "orcid": "https://orcid.org/0000-0001-6328-1047",
+    "affiliation_name": "Technical University of Munich",
+    "affiliation_ror": "https://ror.org/02kkvpp62"
+  },
+  "processor": [
+    {
+      "slot": "CPU",
+      "cores": 4,
+      "model": "Xeon E31230 @ 3.20GHz",
+      "vendor": "Intel",
+      "threads": 8,
+      "version": "6.42.7",
+      "microcode": "41",
+      "virtualized": false,
+      "architecture": "64bit"
+    }
+  ],
+  "threading_enabled": true,
+  "metrics": {
+    "avg_power_w": 108.9,
+    "peak_power_w": 120.0,
+    "energy_wh": 22.0
+  },
+  "zenodo_html": "https://sandbox.zenodo.org/deposit/332282",
+  "run_details": {
+    "experiment_duration": "1117",
+    "runs": 8,
+    "duration_per_run": "120"
+  }
+}
