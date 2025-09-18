@@ -1049,6 +1049,50 @@
       }
     },
     {
+      "id": "2025-09-18_13-08-47_286712",
+      "user": "warmuth",
+      "user_display": "Kilian Warmuth",
+      "orcid": "https://orcid.org/0000-0001-6328-1047",
+      "affiliation_name": "Technical University of Munich",
+      "affiliation_ror": "https://ror.org/02kkvpp62",
+      "cpu_label": "Intel Xeon E5-2640 v2 @ 2.00GHz",
+      "cores": 16,
+      "threads": 32,
+      "sockets": 2,
+      "sockets_list": [
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        },
+        {
+          "vendor": "Intel",
+          "model": "Xeon E5-2640 v2 @ 2.00GHz",
+          "cores": 8,
+          "threads": 16
+        }
+      ],
+      "ht_badge": " (HT off)",
+      "avg_power_w": 165.0,
+      "peak_power_w": 204.0,
+      "energy_wh": 75.0,
+      "created": "2025-09-18T13:46:54.752419",
+      "zenodo": "https://sandbox.zenodo.org/deposit/332384",
+      "images": [
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-18_13-08-47_286712/energy/power-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-18_13-08-47_286712/energy/total-energy-per-node.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-18_13-08-47_286712/energy/current-over-time.png",
+        "https://raw.githubusercontent.com/kiliwarmuth/pos-energy-blueprint-experiment/main/submission/warmuth/2025-09-18_13-08-47_286712/energy/smoothed-voltage.png"
+      ],
+      "node": "nida",
+      "run_details": {
+        "runs": 16,
+        "duration_per_run": "120",
+        "experiment_duration": "2285"
+      }
+    },
+    {
       "id": "2025-09-18_13-09-11_255623",
       "user": "warmuth",
       "user_display": "Kilian Warmuth",
