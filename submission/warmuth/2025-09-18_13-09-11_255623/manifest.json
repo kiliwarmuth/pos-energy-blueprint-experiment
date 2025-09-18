@@ -1,0 +1,38 @@
+{
+  "run_id": "2025-09-18_13-09-11_255623",
+  "node": "cesis",
+  "created": "2025-09-18T13:45:30.989911",
+  "username": "warmuth",
+  "author": {
+    "display_name": "Kilian Warmuth",
+    "handle": "warmuth",
+    "orcid": "https://orcid.org/0000-0001-6328-1047",
+    "affiliation_name": "Technical University of Munich",
+    "affiliation_ror": "https://ror.org/02kkvpp62"
+  },
+  "processor": [
+    {
+      "slot": "SOCKET 0",
+      "cores": 8,
+      "model": "Xeon E5-2640 v2 @ 2.00GHz",
+      "vendor": "Intel",
+      "threads": 16,
+      "version": "6.62.4",
+      "microcode": "1064",
+      "virtualized": false,
+      "architecture": "64bit"
+    }
+  ],
+  "threading_enabled": true,
+  "metrics": {
+    "avg_power_w": 120.8,
+    "peak_power_w": 134.0,
+    "energy_wh": 53.0
+  },
+  "zenodo_html": "",
+  "run_details": {
+    "experiment_duration": "2179",
+    "runs": 16,
+    "duration_per_run": "120"
+  }
+}
