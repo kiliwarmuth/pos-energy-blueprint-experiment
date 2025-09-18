@@ -84,28 +84,27 @@ This stress-test blueprint can serve as a template for building and publishing y
 To adapt it:
 
 1. **Experiment Metadata**
-   - In `experiments.py`, change the experiment `title` and `description` to match your scenario.
+   - In `experiments.py`, change the experiment `metadata` to match your scenario.
+   - In `experiments.py`, set the variables as you need for your experiment.
 
 2. **Experiment Logic**
    - In `loadgen/`, replace or modify `setup.sh` and `experiment.sh` with your own setup and measurement logic.
 
 3. **Parameters**
-   - In `variables/global.yml`, adapt parameters (e.g. CPU, memory, load intensity) to your needs.
+   - In `variables/global.yml`, adapt parameters to your needs.
 
 4. **Execution**
    - Run the experiment with your updated configuration:
 
-   ===#
+   ```bash
    pos experiments execute config.yaml
-   ===#
+   ```
 
 5. **Publication**
    - Use the `--publish` flag together with a Zenodo token (see above) to automatically upload and archive results.
    - Optionally, add `--submit` to forward results to the leaderboard.
 
 ---
-
-✅ With these steps, you can easily replicate the workflow: **allocate node → run experiment → collect results → publish**.
 
 ### Parameters the user can control
 
