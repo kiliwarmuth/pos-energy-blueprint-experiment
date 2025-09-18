@@ -152,7 +152,7 @@ def run_infile(
 def main() -> int:
     """Main entry."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("loadgen", help="Load generator node")
+    parser.add_argument("node", help="Load generator node")
     parser.add_argument("--experiment-name", default="stress-energy")
     parser.add_argument("--global-vars", default="variables/global.yml")
     parser.add_argument("--image", default="debian-bookworm")
@@ -165,7 +165,6 @@ def main() -> int:
     parser.add_argument("--publish", action="store_true")
     parser.add_argument(
         "--zenodo-token-file",
-        default=os.path.expanduser("~/.secrets/zenodo_sandbox_token"),
     )
     parser.add_argument(
         "--submit",
@@ -176,7 +175,10 @@ def main() -> int:
     args = parser.parse_args()
 
     log = setup_logging(args.verbose)
-    log.info("Starting %s on node %s", args.experiment_name, args.loadgen)
+    log.debug("Executing as user: %s", os.path.expanduser('~'))
+    log.debug("Executing as user: %s", os.getlogin())
+    log.debug("Executing as user: %s", os.environ.get("USERNAME"))
+    log.info("Starting %s on node %s", args.experiment_name, args.node)
 
     # Preflight checks
     global_vars_path = Path(os.path.expanduser(args.global_vars))
@@ -185,7 +187,7 @@ def main() -> int:
         return 2
 
     setup_script_p = Path("loadgen") / "setup.sh"
-    exp_script_p = Path("loadgen") / "loadgen.sh"
+    exp_script_p = Path("loadgen") / "measurement.sh"
     for pth in (setup_script_p, exp_script_p):
         if not pth.exists():
             log.error("Script not found: %s", pth)
@@ -193,7 +195,7 @@ def main() -> int:
 
     log.info("Free allocation")
     try:
-        pos.allocations.free(args.loadgen)
+        pos.allocations.free(args.node)
     except restapi.RESTError as e:
         log.warning(
             "Free before allocate failed: %s",
@@ -204,7 +206,7 @@ def main() -> int:
     log.info("Allocate node")
     try:
         alloc_id, _, result_folder = pos.allocations.allocate(
-            [args.loadgen]
+            [args.node]
         )
     except restapi.RESTError as e:
         log.error("Allocation failed: %s", e, exc_info=args.verbose)
@@ -213,7 +215,7 @@ def main() -> int:
     log.debug("Result folder: %s", result_folder)
 
     # Loop sizing based on flag (threads vs cores)
-    cores, threads = get_cpu_counts(args.loadgen, log)
+    cores, threads = get_cpu_counts(args.node, log)
     use = threads if args.enable_hyperthreading and threads else cores
     if args.enable_hyperthreading and not threads:
         log.warning("HT requested but no thread count; using cores.")
@@ -222,7 +224,7 @@ def main() -> int:
     log.info("Set global variables: %s", global_vars_path)
     try:
         set_variables_from_path(
-            args.loadgen,
+            args.node,
             str(global_vars_path),
             as_global=True,
             as_loop=False,
@@ -238,7 +240,7 @@ def main() -> int:
 
     log.info("Set loop variables")
     try:
-        set_inline_loop_variables(args.loadgen, loop_vars, log)
+        set_inline_loop_variables(args.node, loop_vars, log)
     except restapi.RESTError as e:
         log.error(
             "Setting loop variables failed: %s",
@@ -249,7 +251,7 @@ def main() -> int:
 
     log.debug("Apply image: %s", args.image)
     try:
-        pos.nodes.image(args.loadgen, args.image)
+        pos.nodes.image(args.node, args.image)
     except restapi.RESTError as e:
         log.error("Image apply failed: %s", e, exc_info=args.verbose)
         return 1
@@ -264,21 +266,21 @@ def main() -> int:
 
     log.debug("Apply boot params: %s", bootparams)
     try:
-        pos.nodes.bootparameters(args.loadgen, bootparams, delete=False)
+        pos.nodes.bootparameters(args.node, bootparams, delete=False)
     except restapi.RESTError as e:
         log.error("Boot param apply failed: %s", e, exc_info=args.verbose)
         return 1
 
     log.info("Reboot node (blocking)")
     try:
-        pos.nodes.reset(args.loadgen, blocking=True)
+        pos.nodes.reset(args.node, blocking=True)
     except restapi.RESTError as e:
         log.error("Reboot failed: %s", e, exc_info=args.verbose)
         return 1
 
     try:
         run_infile(
-            args.loadgen,
+            args.node,
             str(setup_script_p),
             blocking=True,
             name="setup",
@@ -291,7 +293,7 @@ def main() -> int:
 
     try:
         run_infile(
-            args.loadgen,
+            args.node,
             str(exp_script_p),
             blocking=True,
             name="energy-stress-test",
@@ -314,7 +316,7 @@ def main() -> int:
                  "are stressed."
         )
         desc = (
-            f"Energy blueprint experiment on node {args.loadgen} "
+            f"Energy blueprint experiment on node {args.node} "
             f"using image {args.image}. This run measures the node's "
             "energy consumption by running the Linux 'stress' command "
             f"on each CPU core. {ht_clause}"
@@ -381,19 +383,22 @@ def main() -> int:
         rf_path = os.path.join("/srv/testbed/results", str(result_folder))
         log.info("Publishing results to Zenodo")
 
-        token: str | None = None
-        token_file = os.path.expanduser(args.zenodo_token_file)
-        try:
-            if os.path.exists(token_file):
-                log.debug("Using Zenodo token file: %s", token_file)
-                with open(token_file, "r", encoding="utf-8") as f:
-                    token = f.read().strip()
-        except OSError as e:
-            log.error(
-                "Failed reading token file: %s",
-                e,
-                exc_info=args.verbose,
-            )
+        token = None
+        if args.zenodo_token_file:
+            token_file = os.path.expanduser(args.zenodo_token_file)
+            if token_file:
+                log.debug("Zenodo token file: %s", token_file)
+            try:
+                if os.path.exists(token_file):
+                    log.debug("Using Zenodo token file: %s", token_file)
+                    with open(token_file, "r", encoding="utf-8") as f:
+                        token = f.read().strip()
+            except OSError as e:
+                log.error(
+                    "Failed reading token file: %s",
+                    e,
+                    exc_info=args.verbose,
+                )
 
         if not token:
             env_tok = os.environ.get("ZENODO_ACCESS_TOKEN", "").strip()
