@@ -17,10 +17,23 @@ cores=$(pos_get_variable cores --from-loop)
 runtime=$(pos_get_variable runtime --from-global)
 
 # -----------------------------
-# Tiny logging helpers
+# logging helpers
 # -----------------------------
 info()  { printf "%s [INFO] %s\n"  "$(date '+%F %T')" "$*"; }
 note()  { printf "%s [NOTE] %s\n"  "$(date '+%F %T')" "$*"; }
+warn()  { printf "%s [WARNING] %s\n"  "$(date '+%F %T')" "$*"; }
+
+safe_energy_start() {
+    if ! pos_energy_start --loop --filename "measurement"; then
+        warn "Energy measurement start failed — continuing without energy data"
+    fi
+}
+
+safe_energy_stop() {
+    if ! pos_energy_stop; then
+        warn "Energy measurement stop failed"
+    fi
+}
 
 # -----------------------------
 # Start
@@ -34,7 +47,7 @@ info "Starting test ${test_name}"
 # Energy measurement: start
 # -----------------------------
 info "Starting energy measurement (loop mode, filename: measurement)"
-pos_energy_start --loop --filename "measurement"
+safe_energy_start
 
 # -----------------------------
 # Launch load generator
@@ -54,6 +67,6 @@ sleep "$runtime"
 info "Stopping test ${test_name}"
 
 info "Stopping energy measurement"
-pos_energy_stop
+safe_energy_stop
 
 info "All done LoadGen ${test_name}"
