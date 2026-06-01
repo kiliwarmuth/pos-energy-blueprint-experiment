@@ -171,6 +171,15 @@ def main() -> int:
         action="store_true",
         help="Request daemon to publish this run",
     )
+    parser.add_argument(
+        "--enable-energy",
+        action="store_true",
+        help=(
+            "Enable energy commands (pos.energy plotting and leaderboard "
+            "submission). Requires a poslib build with energy support; "
+            "off by default."
+        ),
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -365,17 +374,18 @@ def main() -> int:
     except restapi.RESTError as e:
         log.error("Metadata update failed: %s", e, exc_info=args.verbose)
 
-    # Create energy plots
-    log.info("Creating Energy Plots")
-    try:
-        pos.energy.visualize(
-            result_dir=result_folder,
-            plots=["power_rel", "bar", "current", "voltage"],
-            img_format="png",
-            runs=None,
-        )
-    except restapi.RESTError as e:
-        log.error("Plot creation failed: %s", e, exc_info=args.verbose)
+    # Create energy plots (requires poslib energy support)
+    if args.enable_energy:
+        log.info("Creating Energy Plots")
+        try:
+            pos.energy.visualize(
+                result_dir=result_folder,
+                plots=["power_rel", "bar", "current", "voltage"],
+                img_format="png",
+                runs=None,
+            )
+        except restapi.RESTError as e:
+            log.error("Plot creation failed: %s", e, exc_info=args.verbose)
 
     # Publish to Zenodo
     deposition_link = None
@@ -434,17 +444,23 @@ def main() -> int:
 
     log.info("Results at: %s", result_folder)
 
-    # Publish submission to leaderboard
+    # Publish submission to leaderboard (requires poslib energy support)
     if args.submit:
-        try:
-            pos.energy.submit(
-                result_dir=result_folder,
-                threading_enabled=bool(args.enable_hyperthreading),
-                zenodo_html=deposition_link or None,
+        if not args.enable_energy:
+            log.warning(
+                "Submit requested but energy commands are disabled; "
+                "pass --enable-energy to submit. Skipping submission."
             )
-            log.info("Submission request sent to daemon.")
-        except restapi.RESTError as e:
-            log.error("Submit failed: %s", e, exc_info=args.verbose)
+        else:
+            try:
+                pos.energy.submit(
+                    result_dir=result_folder,
+                    threading_enabled=bool(args.enable_hyperthreading),
+                    zenodo_html=deposition_link or None,
+                )
+                log.info("Submission request sent to daemon.")
+            except restapi.RESTError as e:
+                log.error("Submit failed: %s", e, exc_info=args.verbose)
 
     return 0
 
